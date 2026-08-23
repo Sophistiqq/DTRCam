@@ -129,7 +129,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Validation E: Duplicate check — any existing record of the same type on
-		// the same work date makes this punch a duplicate backup copy
+		// the same work date rejects this punch (kept on-device only, not stored)
 		const { data: existingPunches } = await supabaseAdmin
 			.from('punches')
 			.select('id')
@@ -140,9 +140,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.limit(1);
 
 		if (existingPunches && existingPunches.length > 0) {
-			status = 'quarantined';
-			quarantineReason = `Duplicate ${metadata.punch_type.toUpperCase()} record on ${metadata.work_date}`;
-			anomalyFlags.duplicate_outside_grace = true;
+			debugLog(`Duplicate ${metadata.punch_type.toUpperCase()} rejected for employee ${employeeId} on ${metadata.work_date}`);
+			return json(
+				{
+					error: `Duplicate ${metadata.punch_type.toUpperCase()} record on ${metadata.work_date}`,
+					duplicate: true
+				},
+				{ status: 409 }
+			);
 		}
 
 		// 2. Hash Chaining

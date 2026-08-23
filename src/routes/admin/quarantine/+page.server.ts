@@ -33,6 +33,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		`
 		)
 		.eq('status', 'quarantined')
+		// Duplicates are device-only backups — never shown in admin view
+		.not('quarantine_reason', 'ilike', '%duplicate%')
 		.order('captured_at', { ascending: false });
 
 	if (dbError) {

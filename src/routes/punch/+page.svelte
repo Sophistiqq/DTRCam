@@ -44,8 +44,6 @@
 	let isRefreshing = $state(false);
 	let successToast = $state<string | null>(null);
 	let clockState = $state<ClockSyncState>(getClockSyncState());
-	// Ticks periodically so time-based UI (duplicate auto-hide) stays live
-	let nowTick = $state(Date.now());
 
 	let syncStatus = $state<SyncStatus>({
 		isSyncing: false,
@@ -58,27 +56,12 @@
 	const todayWorkDate = $derived(formatWorkDate(getTrustedTime().date));
 
 	// ── Duplicate / Button-lock logic ────────────────────────────────────────
-	// A "duplicate" is a quarantined record whose reason contains "duplicate"
-	const isDuplicate = (r: LocalPunchRecord) =>
-		r.status === 'quarantined' && (r.quarantine_reason ?? '').toLowerCase().includes('duplicate');
+	// Duplicates are device-only backups rejected by the server (409) —
+	// hidden from the records list, but still counted to lock the buttons
+	const isDuplicate = (r: LocalPunchRecord) => !!r.duplicate;
 
-	// Hours after which a duplicate is hidden when the primary is already on cloud
-	const DUPLICATE_HIDE_HOURS = 4;
-
-	// Visible records: hide stale duplicates when primary is cloud-synced
-	const visibleTodayRecords = $derived(() => {
-		const now = nowTick;
-		// Find cloud-accepted records per type
-		const cloudIn  = todayRecords.find(r => r.punch_type === 'in'  && r.synced && !isDuplicate(r));
-		const cloudOut = todayRecords.find(r => r.punch_type === 'out' && r.synced && !isDuplicate(r));
-		return todayRecords.filter((r) => {
-			if (!isDuplicate(r)) return true;
-			const primary = r.punch_type === 'in' ? cloudIn : cloudOut;
-			if (!primary) return true; // no primary yet, keep showing
-			const ageMs = now - new Date(r.captured_at).getTime();
-			return ageMs < DUPLICATE_HIDE_HOURS * 60 * 60 * 1000;
-		});
-	});
+	// Visible records exclude device-only duplicates
+	const visibleTodayRecords = $derived(todayRecords.filter((r) => !isDuplicate(r)));
 
 	// Whether user already has a cloud-synced TIME IN today
 	const hasCloudTimedIn  = $derived(todayRecords.some(r => r.punch_type === 'in'  && r.synced && !isDuplicate(r)));
@@ -146,10 +129,9 @@
 		// Initial server data fetch upon login/load to pull any records from other devices
 		syncAndRefresh(true);
 
-		// Periodically refresh clock sync state + time-based UI
+		// Periodically refresh clock sync state
 		clockCheckInterval = setInterval(() => {
 			clockState = getClockSyncState();
-			nowTick = Date.now();
 		}, 3000);
 
 		unsubscribeSync = subscribeSyncStatus((status) => {
@@ -404,13 +386,13 @@
 			</button>
 		</div>
 
-		{#if visibleTodayRecords().length === 0}
+		{#if visibleTodayRecords.length === 0}
 			<p class="empty-state">No records yet — tap TIME IN when you arrive.</p>
 		{:else}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			{#each visibleTodayRecords() as record}
-				<div class="punch-item" class:duplicate-row={isDuplicate(record)} onclick={() => openRecord(record)}>
+			{#each visibleTodayRecords as record}
+				<div class="punch-item" onclick={() => openRecord(record)}>
 					<span
 						class="type-pill"
 						class:pill-in={record.punch_type === 'in'}
@@ -435,13 +417,7 @@
 								<FileText size={12} class="inline-icon" /> {record.location_text || 'Manual'}
 							{/if}
 						</span>
-						{#if isDuplicate(record)}
-							<div class="quarantine-pill-wrap">
-								<span class="pill-duplicate" title="Backup copy — primary already on cloud">
-									<Cloud size={11} class="inline-icon" /> DUPLICATE
-								</span>
-							</div>
-						{:else if record.status === 'quarantined'}
+						{#if record.status === 'quarantined'}
 							<div class="quarantine-pill-wrap">
 								<span class="pill-quarantined" title={record.quarantine_reason || 'Quarantined for review'}>
 									<AlertTriangle size={11} class="inline-icon" /> QUARANTINED
@@ -504,38 +480,21 @@
 		{/if}
 
 		{#if selectedRecord.status === 'quarantined'}
-			{#if isDuplicate(selectedRecord)}
-				<div class="detail-duplicate-card">
-					<div class="detail-duplicate-header">
-						<Cloud size={18} class="inline-icon" />
-						<strong>Duplicate Backup Copy</strong>
-					</div>
-					<p class="detail-duplicate-reason">
-						This is an extra copy kept for your peace of mind. Your original
-						{selectedRecord.punch_type === 'in' ? 'TIME IN' : 'TIME OUT'} is already verified and safe on the cloud.
-					</p>
+			<div class="detail-quarantine-card">
+				<div class="detail-quarantine-header">
+					<ShieldAlert size={18} class="inline-icon" />
+					<strong>Record Quarantined for Admin Review</strong>
 				</div>
-			{:else}
-				<div class="detail-quarantine-card">
-					<div class="detail-quarantine-header">
-						<ShieldAlert size={18} class="inline-icon" />
-						<strong>Record Quarantined for Admin Review</strong>
-					</div>
-					<p class="detail-quarantine-reason">
-						{selectedRecord.quarantine_reason || 'Flagged for administrator review (clock skew or verification check)'}
-					</p>
-				</div>
-			{/if}
+				<p class="detail-quarantine-reason">
+					{selectedRecord.quarantine_reason || 'Flagged for administrator review (clock skew or verification check)'}
+				</p>
+			</div>
 		{/if}
 
 		<div class="detail-info">
 			<div class="info-row">
 				<span class="info-label">Verification Status</span>
-				{#if isDuplicate(selectedRecord)}
-					<span class="info-value status-duplicate">
-						<Cloud size={14} class="inline-icon" /> Duplicate (Backup Copy)
-					</span>
-				{:else if selectedRecord.status === 'quarantined'}
+				{#if selectedRecord.status === 'quarantined'}
 					<span class="info-value status-quarantined">
 						<AlertTriangle size={14} class="inline-icon" /> Quarantined (Pending Review)
 					</span>
@@ -953,28 +912,6 @@
 		gap: 0.25rem;
 	}
 
-	/* Duplicate = informational (not a warning) */
-	.pill-duplicate {
-		font-size: 0.68rem;
-		font-weight: 800;
-		padding: 0.15rem 0.45rem;
-		border-radius: 4px;
-		background: rgba(59, 130, 246, 0.15);
-		border: 1px solid rgba(59, 130, 246, 0.4);
-		color: #93c5fd;
-		letter-spacing: 0.03em;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	.duplicate-row {
-		background: rgba(59, 130, 246, 0.04);
-		padding: 0.65rem 0.5rem;
-		border-radius: 8px;
-		margin: 0.1rem 0;
-	}
-
 	.quarantine-pill-wrap {
 		margin-top: 0.2rem;
 	}
@@ -1056,41 +993,8 @@
 		line-height: 1.4;
 	}
 
-	/* Duplicate detail card — informational, not a warning */
-	.detail-duplicate-card {
-		margin: 1rem 1rem 0;
-		padding: 0.85rem 1rem;
-		background: rgba(59, 130, 246, 0.12);
-		border: 1px solid rgba(59, 130, 246, 0.4);
-		border-radius: 10px;
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.detail-duplicate-header {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		color: #93c5fd;
-		font-size: 0.9rem;
-	}
-
-	.detail-duplicate-reason {
-		font-size: 0.82rem;
-		color: #bfdbfe;
-		line-height: 1.4;
-	}
-
 	.status-quarantined {
 		color: #ff8c85 !important;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-	}
-
-	.status-duplicate {
-		color: #93c5fd !important;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;

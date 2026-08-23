@@ -21,6 +21,8 @@ export interface LocalPunchRecord {
 	photo_path?: string | null;
 	status?: PunchStatus;
 	quarantine_reason?: string | null;
+	/** Device-only backup rejected by the server as a duplicate — never stored in DB */
+	duplicate?: boolean;
 	synced: boolean;
 }
 

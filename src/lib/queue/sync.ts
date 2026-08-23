@@ -128,6 +128,20 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 		});
 		clearTimeout(timeoutId);
 
+		// Duplicate: server refuses to store it — keep as on-device backup only
+		if (response.status === 409) {
+			console.log('[Sync] Punch rejected as duplicate (device-only backup):', item.id);
+			await removeQueuedPunch(item.id);
+
+			const localPunches = getLocalPunches();
+			const match = localPunches.find((p) => p.id === item.id);
+			if (match) {
+				match.duplicate = true;
+				saveLocalPunch(match);
+			}
+			return true;
+		}
+
 		if (response.ok) {
 			const result = await response.json();
 			console.log('[Sync] Punch ingested successfully:', result);
