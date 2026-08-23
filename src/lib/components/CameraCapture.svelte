@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { getTrustedTime, formatDateTimeDisplay } from '$lib/clock';
+	import { getTrustedTime, formatDateTimeDisplay, getClockSyncState, type ClockSyncState } from '$lib/clock';
 	import { getGpsPosition, formatCoordinates, type GpsResult } from '$lib/gps';
 	import { renderPunchOverlay } from '$lib/camera/overlay';
 	import { injectExif } from '$lib/camera/exif';
@@ -53,17 +53,19 @@
 	let manualLocationInput = $state('');
 	let manualLocationSaved = $state<string | null>(null);
 
-	// Live trusted clock ticker
+	// Live trusted clock ticker & sync state
 	let currentDisplayTime = $state(formatDateTimeDisplay(getTrustedTime().date));
+	let clockSyncState = $state<ClockSyncState>(getClockSyncState());
 	let clockInterval: ReturnType<typeof setInterval> | null = null;
 
 	onMount(() => {
 		startCamera();
 		acquireGps();
 
-		// Tick clock every second
+		// Tick clock every second and check drift
 		clockInterval = setInterval(() => {
 			currentDisplayTime = formatDateTimeDisplay(getTrustedTime().date);
+			clockSyncState = getClockSyncState();
 		}, 1000);
 	});
 
@@ -377,8 +379,15 @@
 			></video>
 		{/if}
 
-		<!-- Square Framing Guide Overlay -->
+		<!-- Framing guide -->
 		<div class="framing-guide"></div>
+
+		{#if clockSyncState.isDrifted}
+			<div class="clock-desync-chip" role="alert">
+				<AlertTriangle size={13} class="inline-icon" />
+				<span>Phone time out of sync ({clockSyncState.driftDescription})</span>
+			</div>
+		{/if}
 
 		<!-- Live Timestamp / Overlay Preview Pill -->
 		<div class="live-overlay-preview">
@@ -518,25 +527,25 @@
 	}
 
 	.gps-ready {
-		border-color: rgba(74, 222, 128, 0.5);
-		color: #4ade80;
+		border-color: rgba(34, 197, 94, 0.5);
+		color: #22c55e;
 	}
 
 	.gps-failed {
-		border-color: rgba(248, 113, 113, 0.5);
-		color: #f87171;
+		border-color: rgba(219, 70, 62, 0.5);
+		color: #db463e;
 	}
 
 	.gps-manual {
-		border-color: rgba(251, 191, 36, 0.5);
-		color: #fbbf24;
+		border-color: rgba(222, 77, 20, 0.5);
+		color: #de4d14;
 	}
 
 	.pulse-dot {
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: #fbbf24;
+		background: #ede947;
 		animation: pulse 1s infinite alternate;
 	}
 
@@ -578,12 +587,33 @@
 		pointer-events: none;
 	}
 
+	.clock-desync-chip {
+		position: absolute;
+		top: 1.5rem;
+		left: 50%;
+		transform: translateX(-50%);
+		background: rgba(219, 70, 62, 0.9);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		color: #ffffff;
+		padding: 0.35rem 0.75rem;
+		border-radius: 20px;
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		backdrop-filter: blur(8px);
+		z-index: 6;
+		white-space: nowrap;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+	}
+
 	.live-overlay-preview {
 		position: absolute;
 		bottom: 1.5rem;
 		left: 50%;
 		transform: translateX(-50%);
-		background: rgba(10, 10, 10, 0.85);
+		background: rgba(22, 13, 51, 0.88);
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		padding: 0.4rem 0.85rem;
 		border-radius: 20px;
@@ -603,13 +633,15 @@
 	}
 
 	.badge-in {
-		background: #166534;
-		color: #4ade80;
+		background: rgba(34, 197, 94, 0.2);
+		color: #22c55e;
+		border: 1px solid rgba(34, 197, 94, 0.45);
 	}
 
 	.badge-out {
-		background: #9a3412;
-		color: #fb923c;
+		background: rgba(222, 77, 20, 0.25);
+		color: #de4d14;
+		border: 1px solid rgba(222, 77, 20, 0.4);
 	}
 
 	.preview-time {
@@ -623,7 +655,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+		background: linear-gradient(to top, rgba(14, 7, 31, 0.95), transparent);
 		z-index: 10;
 	}
 
@@ -653,11 +685,11 @@
 	}
 
 	.inner-in {
-		background: #4ade80;
+		background: #22c55e;
 	}
 
 	.inner-out {
-		background: #fb923c;
+		background: #de4d14;
 	}
 
 	.shutter-btn.capturing .shutter-inner {
@@ -668,7 +700,7 @@
 	.camera-error-box {
 		padding: 2rem;
 		text-align: center;
-		color: #f87171;
+		color: #db463e;
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
@@ -677,11 +709,11 @@
 
 	.btn-fallback {
 		padding: 0.8rem 1.25rem;
-		background: #4ade80;
-		color: #000000;
+		background: #ede947;
+		color: #160d33;
 		border: none;
 		border-radius: 8px;
-		font-weight: 700;
+		font-weight: 800;
 		font-size: 0.95rem;
 		cursor: pointer;
 	}
@@ -690,7 +722,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.8);
+		background: rgba(14, 7, 31, 0.85);
 		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
@@ -700,8 +732,8 @@
 	}
 
 	.modal-card {
-		background: #1a1a1a;
-		border: 1px solid #2a2a2a;
+		background: #24154a;
+		border: 1px solid #3f2776;
 		border-radius: 12px;
 		padding: 1.5rem;
 		width: 100%;
@@ -719,15 +751,15 @@
 
 	.modal-subtitle {
 		font-size: 0.85rem;
-		color: #9ca3af;
+		color: #b8abdd;
 		line-height: 1.4;
 	}
 
 	.manual-input {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		background: #0d0d0d;
-		border: 1px solid #333333;
+		background: #140d2b;
+		border: 1px solid #3f2776;
 		border-radius: 8px;
 		color: #ffffff;
 		font-size: 0.95rem;
@@ -735,7 +767,7 @@
 	}
 
 	.manual-input:focus {
-		border-color: #4ade80;
+		border-color: #ede947;
 	}
 
 	.modal-actions {
@@ -748,8 +780,8 @@
 	.btn-cancel {
 		padding: 0.65rem 1rem;
 		background: transparent;
-		border: 1px solid #333333;
-		color: #9ca3af;
+		border: 1px solid #3f2776;
+		color: #b8abdd;
 		border-radius: 6px;
 		font-size: 0.9rem;
 		cursor: pointer;
@@ -757,10 +789,10 @@
 
 	.btn-confirm {
 		padding: 0.65rem 1.2rem;
-		background: #4ade80;
+		background: #ede947;
 		border: none;
-		color: #000000;
-		font-weight: 700;
+		color: #160d33;
+		font-weight: 800;
 		border-radius: 6px;
 		font-size: 0.9rem;
 		cursor: pointer;

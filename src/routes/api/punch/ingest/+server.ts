@@ -75,10 +75,18 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'Invalid captured_at timestamp' }, { status: 400 });
 		}
 
+		// Check for future time tampering or extreme clock desync
 		if (captureEpoch > receivedEpoch + FUTURE_TOLERANCE_MS) {
 			status = 'quarantined';
-			quarantineReason = `Captured time is in the future (${Math.round((captureEpoch - receivedEpoch) / 1000)}s ahead)`;
+			const aheadSec = Math.round((captureEpoch - receivedEpoch) / 1000);
+			quarantineReason = `Phone clock is out of sync with DTRCam server (${aheadSec}s in future)`;
 			anomalyFlags.future_clock_drift = true;
+			anomalyFlags.clock_desync = true;
+		} else if (metadata.clock_offset_ms && Math.abs(metadata.clock_offset_ms) > 120_000) {
+			status = 'quarantined';
+			const driftSec = Math.round(Math.abs(metadata.clock_offset_ms) / 1000);
+			quarantineReason = `Phone clock is out of sync with DTRCam trusted clock (${driftSec}s ${metadata.clock_offset_ms > 0 ? 'behind' : 'ahead'})`;
+			anomalyFlags.clock_desync = true;
 		} else if (receivedEpoch - captureEpoch > LATE_SYNC_MS) {
 			if (status !== 'quarantined') {
 				status = 'late_sync';
@@ -143,7 +151,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			} else {
 				// Outside grace period
 				status = 'quarantined';
-				quarantineReason = `Duplicate ${metadata.punch_type.toUpperCase()} punch on ${metadata.work_date} outside retake grace window`;
+				quarantineReason = `Duplicate ${metadata.punch_type.toUpperCase()} record on ${metadata.work_date} outside retake grace window`;
 				anomalyFlags.duplicate_outside_grace = true;
 			}
 		}
@@ -277,7 +285,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const { data, error } = await supabaseAdmin
 		.from('punches')
 		.select(
-			'id, work_date, punch_type, captured_at, trusted_clock_epoch, lat, lng, gps_accuracy_m, location_source, location_text, payload_sha256, photo_path'
+			'id, work_date, punch_type, captured_at, trusted_clock_epoch, lat, lng, gps_accuracy_m, location_source, location_text, payload_sha256, photo_path, status, quarantine_reason'
 		)
 		.eq('employee_id', profile.id)
 		.gte('work_date', since.toISOString().slice(0, 10))

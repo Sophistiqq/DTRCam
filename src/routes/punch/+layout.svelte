@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { logout } from '$lib/auth';
 	import { requestStoragePersistence } from '$lib/storage';
+	import AppLogo from '$lib/components/AppLogo.svelte';
 	import type { Profile } from '$lib/types/database';
 
 	let { children } = $props();
@@ -33,7 +34,10 @@
 
 <div class="shell">
 	<header class="topbar">
-		<span class="app-name">DTRCam</span>
+		<div class="app-brand">
+			<AppLogo size={28} />
+			<span class="app-name">DTRCam</span>
+		</div>
 		<div class="topbar-right">
 			<span class="employee-name">{profile?.full_name ?? ''}</span>
 			<button type="button" class="btn-logout" onclick={() => logout()}>Logout</button>
@@ -67,10 +71,16 @@
 		z-index: 10;
 	}
 
+	.app-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+	}
+
 	.app-name {
 		font-weight: 800;
-		font-size: 1.1rem;
-		color: var(--accent, #4ade80);
+		font-size: 1.15rem;
+		color: #ffffff;
 		letter-spacing: -0.02em;
 	}
 
@@ -103,8 +113,8 @@
 	}
 
 	.btn-logout:hover {
-		border-color: var(--danger, #f87171);
-		color: var(--danger, #f87171);
+		border-color: var(--danger, #db463e);
+		color: var(--danger, #db463e);
 	}
 
 	.content {

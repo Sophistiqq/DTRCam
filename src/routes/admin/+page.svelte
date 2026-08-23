@@ -83,11 +83,11 @@
 	.title {
 		font-size: 1.5rem;
 		font-weight: 800;
-		color: var(--accent, #4ade80);
+		color: var(--accent, #ede947);
 	}
 
 	.subtitle {
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 		font-size: 0.95rem;
 		margin-top: -0.75rem;
 	}
@@ -100,24 +100,24 @@
 	}
 
 	.stat-box {
-		background: #121212;
-		border: 1px solid var(--border, #2a2a2a);
+		background: var(--bg, #140d2b);
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 10px;
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;
 		text-decoration: none;
 		color: inherit;
-		transition: border-color 0.15s;
+		transition: border-color 0.15s, transform 0.1s;
 	}
 
 	.stat-box:hover {
-		border-color: var(--accent, #4ade80);
+		border-color: var(--accent, #ede947);
 	}
 
 	.stat-box.alert {
-		border-color: rgba(251, 146, 60, 0.4);
-		background: rgba(251, 146, 60, 0.05);
+		border-color: rgba(222, 77, 20, 0.5);
+		background: rgba(222, 77, 20, 0.1);
 	}
 
 	.stat-num {
@@ -128,7 +128,7 @@
 	}
 
 	.stat-box.alert .stat-num {
-		color: #fb923c;
+		color: var(--accent-orange, #de4d14);
 	}
 
 	.stat-label {

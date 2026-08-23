@@ -11,6 +11,7 @@ import {
 	type QueuedPunchItem
 } from './db';
 import { getLocalPunches, saveLocalPunch } from '$lib/history';
+import { getClockSyncState } from '$lib/clock';
 
 export interface SyncStatus {
 	isSyncing: boolean;
@@ -96,6 +97,8 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 		const formData = new FormData();
 		formData.append('photo', item.photo_blob, `punch_${item.id}.jpg`);
 
+		const clockState = getClockSyncState();
+
 		const metadata = {
 			id: item.id,
 			employee_id: item.employee_id,
@@ -103,6 +106,7 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 			punch_type: item.punch_type,
 			captured_at: item.captured_at,
 			trusted_clock_epoch: item.trusted_clock_epoch,
+			clock_offset_ms: clockState.offsetMs,
 			lat: item.lat,
 			lng: item.lng,
 			gps_accuracy_m: item.gps_accuracy_m,
@@ -131,11 +135,13 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 			// Remove from IndexedDB
 			await removeQueuedPunch(item.id);
 
-			// Update local history synced flag
+			// Update local history synced flag and quarantine status
 			const localPunches = getLocalPunches();
 			const match = localPunches.find((p) => p.id === item.id);
 			if (match) {
 				match.synced = true;
+				match.status = result.status;
+				match.quarantine_reason = result.quarantine_reason ?? null;
 				saveLocalPunch(match);
 			}
 

@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import AppLogo from '$lib/components/AppLogo.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -19,8 +20,11 @@
 
 <div class="page">
 	<header class="brand">
+		<div class="logo-wrapper">
+			<AppLogo size={56} />
+		</div>
 		<h1 class="app-name">DTRCam</h1>
-		<p class="subtitle">Attendance System</p>
+		<p class="subtitle">Attendance & Verification System</p>
 	</header>
 
 	<main class="card">
@@ -78,29 +82,6 @@
 </div>
 
 <style>
-	:global(:root) {
-		--bg: #0d0d0d;
-		--surface: #1a1a1a;
-		--border: #2a2a2a;
-		--text: #f0f0f0;
-		--muted: #888;
-		--accent: #4ade80;
-		--danger: #f87171;
-		--warning: #fb923c;
-	}
-
-	:global(*) {
-		box-sizing: border-box;
-		margin: 0;
-		padding: 0;
-	}
-
-	:global(body) {
-		background: var(--bg);
-		color: var(--text);
-		font-family: system-ui, sans-serif;
-	}
-
 	.page {
 		display: flex;
 		flex-direction: column;
@@ -109,33 +90,47 @@
 		min-height: 100dvh;
 		padding: 1.5rem;
 		gap: 2rem;
-		background: var(--bg);
+		background: radial-gradient(circle at 50% 20%, #2e1b62 0%, #140d2b 70%);
 	}
 
 	.brand {
 		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.logo-wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 0.25rem;
+		filter: drop-shadow(0 4px 12px rgba(222, 77, 20, 0.35));
 	}
 
 	.app-name {
 		font-size: 2.5rem;
 		font-weight: 800;
-		color: var(--accent);
+		color: #ffffff;
 		letter-spacing: -0.03em;
+		text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 	}
 
 	.subtitle {
-		color: var(--muted);
+		color: var(--text-muted, #b8abdd);
 		font-size: 0.95rem;
-		margin-top: 0.25rem;
+		letter-spacing: 0.02em;
 	}
 
 	.card {
 		width: 100%;
 		max-width: 400px;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 12px;
-		padding: 1.75rem 1.5rem;
+		background: var(--surface, #24154a);
+		border: 1px solid var(--border, #3f2776);
+		box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+		border-radius: 16px;
+		padding: 2rem 1.75rem;
 	}
 
 	form {
@@ -190,19 +185,22 @@
 	.btn-submit {
 		width: 100%;
 		padding: 0.85rem;
-		background: var(--accent);
-		color: #0d0d0d;
+		background: var(--accent, #ede947);
+		color: #1b0d38;
 		border: none;
 		border-radius: 8px;
 		font-size: 1rem;
-		font-weight: 700;
+		font-weight: 800;
+		letter-spacing: 0.02em;
 		font-family: inherit;
 		cursor: pointer;
-		transition: opacity 0.15s;
+		transition: opacity 0.15s, transform 0.1s;
 		margin-top: 0.25rem;
 	}
 
 	.btn-submit:hover:not(:disabled) {
+		opacity: 0.92;
+		transform: translateY(-1px);
 		opacity: 0.88;
 	}
 

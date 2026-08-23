@@ -317,21 +317,21 @@
 	}
 
 	.badge-admin {
-		background: color-mix(in srgb, var(--accent, #4ade80) 20%, transparent);
-		color: var(--accent, #4ade80);
+		background: color-mix(in srgb, var(--accent, #ede947) 20%, transparent);
+		color: var(--accent, #ede947);
 	}
 
 	.status-pill {
 		font-size: 0.75rem;
 		padding: 0.15rem 0.5rem;
 		border-radius: 20px;
-		background: rgba(248, 113, 113, 0.2);
-		color: #f87171;
+		background: rgba(219, 70, 62, 0.2);
+		color: #db463e;
 	}
 
 	.status-pill.active {
-		background: rgba(74, 222, 128, 0.2);
-		color: #4ade80;
+		background: rgba(34, 197, 94, 0.2);
+		color: #22c55e;
 	}
 
 	.actions-cell {
@@ -347,11 +347,11 @@
 
 	.btn-primary {
 		padding: 0.65rem 1.1rem;
-		background: var(--accent, #4ade80);
-		color: #000000;
+		background: var(--accent, #ede947);
+		color: #160d33;
 		border: none;
 		border-radius: 8px;
-		font-weight: 700;
+		font-weight: 800;
 		font-size: 0.9rem;
 		cursor: pointer;
 		display: inline-flex;
@@ -362,8 +362,8 @@
 	.btn-outline {
 		padding: 0.65rem 1rem;
 		background: transparent;
-		border: 1px solid var(--border, #2a2a2a);
-		color: var(--text, #f0f0f0);
+		border: 1px solid var(--border, #3f2776);
+		color: var(--text, #ffffff);
 		border-radius: 8px;
 		font-size: 0.85rem;
 		cursor: pointer;
@@ -378,15 +378,15 @@
 	}
 
 	.btn-danger {
-		background: rgba(248, 113, 113, 0.15);
-		border: 1px solid rgba(248, 113, 113, 0.4);
-		color: #f87171;
+		background: rgba(219, 70, 62, 0.15);
+		border: 1px solid rgba(219, 70, 62, 0.4);
+		color: #db463e;
 	}
 
 	.btn-success {
-		background: rgba(74, 222, 128, 0.15);
-		border: 1px solid rgba(74, 222, 128, 0.4);
-		color: #4ade80;
+		background: rgba(34, 197, 94, 0.18);
+		border: 1px solid rgba(34, 197, 94, 0.4);
+		color: #22c55e;
 	}
 
 	.alert-box {
@@ -396,15 +396,15 @@
 	}
 
 	.alert-box.error {
-		background: rgba(248, 113, 113, 0.15);
-		border: 1px solid rgba(248, 113, 113, 0.4);
-		color: #f87171;
+		background: rgba(219, 70, 62, 0.15);
+		border: 1px solid rgba(219, 70, 62, 0.4);
+		color: #db463e;
 	}
 
 	.alert-box.success {
-		background: rgba(74, 222, 128, 0.15);
-		border: 1px solid rgba(74, 222, 128, 0.4);
-		color: #4ade80;
+		background: rgba(34, 197, 94, 0.18);
+		border: 1px solid rgba(34, 197, 94, 0.4);
+		color: #22c55e;
 		display: flex;
 		flex-direction: column;
 		gap: 0.4rem;
@@ -422,7 +422,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.8);
+		background: rgba(14, 7, 31, 0.85);
 		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
@@ -432,8 +432,8 @@
 	}
 
 	.modal-card {
-		background: #1a1a1a;
-		border: 1px solid var(--border, #2a2a2a);
+		background: var(--surface, #24154a);
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 14px;
 		padding: 1.5rem;
 		width: 100%;
@@ -459,8 +459,8 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		background: #262626;
-		border: 1px solid #333333;
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		color: #ffffff;
 		cursor: pointer;
 	}
@@ -479,7 +479,7 @@
 
 	.field label {
 		font-size: 0.8rem;
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 		font-weight: 500;
 	}
 
@@ -487,8 +487,8 @@
 	.select-input {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		background: #0d0d0d;
-		border: 1px solid var(--border, #2a2a2a);
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 8px;
 		color: #ffffff;
 		font-size: 0.95rem;
@@ -498,7 +498,7 @@
 
 	.field input:focus,
 	.select-input:focus {
-		border-color: var(--accent, #4ade80);
+		border-color: var(--accent, #ede947);
 	}
 
 	.modal-actions {

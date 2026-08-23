@@ -213,7 +213,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.8);
+		background: rgba(14, 7, 31, 0.85);
 		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
@@ -223,8 +223,8 @@
 	}
 
 	.modal-card {
-		background: #1a1a1a;
-		border: 1px solid var(--border, #2a2a2a);
+		background: var(--surface, #24154a);
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 14px;
 		padding: 1.5rem;
 		width: 100%;
@@ -250,20 +250,20 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		background: #262626;
-		border: 1px solid #333333;
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		color: #ffffff;
 		cursor: pointer;
 	}
 
 	.json-box {
-		background: #0d0d0d;
-		border: 1px solid #2a2a2a;
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 8px;
 		padding: 1rem;
 		font-family: monospace;
 		font-size: 0.8rem;
-		color: #4ade80;
+		color: #ede947;
 		max-height: 300px;
 		overflow-y: auto;
 		white-space: pre-wrap;
@@ -277,11 +277,11 @@
 
 	.btn-primary {
 		padding: 0.6rem 1.2rem;
-		background: var(--accent, #4ade80);
-		color: #000000;
+		background: var(--accent, #ede947);
+		color: #160d33;
 		border: none;
 		border-radius: 8px;
-		font-weight: 700;
+		font-weight: 800;
 		font-size: 0.9rem;
 		cursor: pointer;
 	}

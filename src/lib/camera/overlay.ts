@@ -104,8 +104,9 @@ export async function renderPunchOverlay(options: OverlayOptions): Promise<Overl
 	// 4. Overlay text
 	// Line 1: Punch Badge + Date & Time
 	const badgeText = punchType === 'in' ? 'TIME IN' : 'TIME OUT';
-	const badgeBg = punchType === 'in' ? '#166534' : '#9a3412';
-	const badgeBorder = punchType === 'in' ? '#4ade80' : '#fb923c';
+	const badgeBg = punchType === 'in' ? '#0f392b' : '#7C2607';
+	const badgeBorder = punchType === 'in' ? '#22c55e' : '#DE4D14';
+	const badgeTextColor = punchType === 'in' ? '#4ade80' : '#FFFFFF';
 
 	ctx.font = `bold ${Math.round(34 * fs)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
 	const badgeWidth = ctx.measureText(badgeText).width + 36 * fs;
@@ -119,7 +120,7 @@ export async function renderPunchOverlay(options: OverlayOptions): Promise<Overl
 	ctx.fill();
 	ctx.stroke();
 
-	ctx.fillStyle = '#ffffff';
+	ctx.fillStyle = badgeTextColor;
 	ctx.textAlign = 'left';
 	ctx.fillText(badgeText, paddingX + 18 * fs, badgeRowY);
 

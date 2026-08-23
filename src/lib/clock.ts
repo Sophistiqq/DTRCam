@@ -223,3 +223,51 @@ export function formatDateTimeDisplay(date: Date): string {
 	const ss = String(date.getSeconds()).padStart(2, '0');
 	return `${y}-${m}-${d} ${h}:${mm}:${ss} ${ampm}`;
 }
+
+export interface ClockSyncState {
+	isSynced: boolean;
+	offsetMs: number;
+	driftSeconds: number;
+	isDrifted: boolean; // Flagged when device phone time deviates by > 60s
+	driftDescription: string | null;
+}
+
+/**
+ * Check if the phone's hardware time is out of sync with DTRCam server time.
+ */
+export function getClockSyncState(): ClockSyncState {
+	if (typeof window === 'undefined') {
+		return { isSynced: false, offsetMs: 0, driftSeconds: 0, isDrifted: false, driftDescription: null };
+	}
+
+	const syncData = _lastSync || loadStoredSync();
+	if (!syncData) {
+		return { isSynced: false, offsetMs: 0, driftSeconds: 0, isDrifted: false, driftDescription: null };
+	}
+
+	const currentTrusted = getTrustedTime().epochMs;
+	const deviceNow = Date.now();
+	const diffMs = currentTrusted - deviceNow; // positive if phone is behind, negative if phone is ahead
+	const driftSeconds = Math.round(Math.abs(diffMs) / 1000);
+	const isDrifted = driftSeconds >= 60; // 60s threshold for warning and reporting
+
+	let driftDescription: string | null = null;
+	if (isDrifted) {
+		if (driftSeconds < 3600) {
+			const mins = Math.round(driftSeconds / 60);
+			driftDescription = `${mins} min${mins > 1 ? 's' : ''} ${diffMs > 0 ? 'behind' : 'ahead'}`;
+		} else {
+			const hours = (driftSeconds / 3600).toFixed(1);
+			driftDescription = `${hours} hrs ${diffMs > 0 ? 'behind' : 'ahead'}`;
+		}
+	}
+
+	return {
+		isSynced: true,
+		offsetMs: diffMs,
+		driftSeconds,
+		isDrifted,
+		driftDescription
+	};
+}
+

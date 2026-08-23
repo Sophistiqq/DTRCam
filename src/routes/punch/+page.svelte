@@ -2,7 +2,14 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import CameraCapture from '$lib/components/CameraCapture.svelte';
-	import { initTrustedClock, getTrustedTime, formatWorkDate, formatDateTimeDisplay } from '$lib/clock';
+	import {
+		initTrustedClock,
+		getTrustedTime,
+		formatWorkDate,
+		formatDateTimeDisplay,
+		getClockSyncState,
+		type ClockSyncState
+	} from '$lib/clock';
 	import { formatCoordinates, getGoogleMapsUrl } from '$lib/gps';
 	import { getLocalPunches, saveLocalPunch, refreshRecordsFromServer, type LocalPunchRecord } from '$lib/history';
 	import { enqueuePunch, getLatestQueuedHashForEmployee } from '$lib/queue/db';
@@ -20,7 +27,9 @@
 		HardDrive,
 		Camera,
 		ExternalLink,
-		ArrowLeft
+		ArrowLeft,
+		AlertTriangle,
+		ShieldAlert
 	} from 'lucide-svelte';
 
 	import { cachePunchPhoto, getCachedPunchPhoto, getOrFetchPunchPhoto } from '$lib/queue/db';
@@ -34,6 +43,9 @@
 	let isLoadingPhoto = $state(false);
 	let isRefreshing = $state(false);
 	let successToast = $state<string | null>(null);
+	let clockState = $state<ClockSyncState>(getClockSyncState());
+	// Ticks periodically so time-based UI (duplicate auto-hide) stays live
+	let nowTick = $state(Date.now());
 
 	let syncStatus = $state<SyncStatus>({
 		isSyncing: false,
@@ -44,6 +56,44 @@
 
 	let unsubscribeSync: (() => void) | null = null;
 	const todayWorkDate = $derived(formatWorkDate(getTrustedTime().date));
+
+	// ── Duplicate / Button-lock logic ────────────────────────────────────────
+	// A "duplicate" is a quarantined record whose reason contains "duplicate"
+	const isDuplicate = (r: LocalPunchRecord) =>
+		r.status === 'quarantined' && (r.quarantine_reason ?? '').toLowerCase().includes('duplicate');
+
+	// Hours after which a duplicate is hidden when the primary is already on cloud
+	const DUPLICATE_HIDE_HOURS = 4;
+
+	// Visible records: hide stale duplicates when primary is cloud-synced
+	const visibleTodayRecords = $derived(() => {
+		const now = nowTick;
+		// Find cloud-accepted records per type
+		const cloudIn  = todayRecords.find(r => r.punch_type === 'in'  && r.synced && !isDuplicate(r));
+		const cloudOut = todayRecords.find(r => r.punch_type === 'out' && r.synced && !isDuplicate(r));
+		return todayRecords.filter((r) => {
+			if (!isDuplicate(r)) return true;
+			const primary = r.punch_type === 'in' ? cloudIn : cloudOut;
+			if (!primary) return true; // no primary yet, keep showing
+			const ageMs = now - new Date(r.captured_at).getTime();
+			return ageMs < DUPLICATE_HIDE_HOURS * 60 * 60 * 1000;
+		});
+	});
+
+	// Whether user already has a cloud-synced TIME IN today
+	const hasCloudTimedIn  = $derived(todayRecords.some(r => r.punch_type === 'in'  && r.synced && !isDuplicate(r)));
+	const hasCloudTimedOut = $derived(todayRecords.some(r => r.punch_type === 'out' && r.synced && !isDuplicate(r)));
+
+	// Count of unsynced/duplicate TIME IN records (the "peace of mind" backup)
+	const duplicateInCount  = $derived(todayRecords.filter(r => r.punch_type === 'in'  && isDuplicate(r)).length);
+	const duplicateOutCount = $derived(todayRecords.filter(r => r.punch_type === 'out' && isDuplicate(r)).length);
+
+	// Disable TIME IN when: cloud record exists AND already have 1 duplicate backup
+	const timeInDisabled  = $derived(hasCloudTimedIn  && duplicateInCount  >= 1);
+	const timeOutDisabled = $derived(hasCloudTimedOut && duplicateOutCount >= 1);
+
+	// Only non-duplicate quarantined records are "real" quarantines to warn about
+	const quarantinedRecords = $derived(todayRecords.filter(r => r.status === 'quarantined' && !isDuplicate(r)));
 
 	// ── Browser back button support & IndexedDB Photo Loading ────────────────
 	async function openRecord(record: LocalPunchRecord) {
@@ -86,6 +136,8 @@
 		}
 	}
 
+	let clockCheckInterval: ReturnType<typeof setInterval> | null = null;
+
 	onMount(() => {
 		initTrustedClock();
 		initSyncEngine();
@@ -94,9 +146,16 @@
 		// Initial server data fetch upon login/load to pull any records from other devices
 		syncAndRefresh(true);
 
+		// Periodically refresh clock sync state + time-based UI
+		clockCheckInterval = setInterval(() => {
+			clockState = getClockSyncState();
+			nowTick = Date.now();
+		}, 3000);
+
 		unsubscribeSync = subscribeSyncStatus((status) => {
 			syncStatus = status;
 			refreshRecords();
+			clockState = getClockSyncState();
 		});
 
 		window.addEventListener('popstate', handlePopState);
@@ -104,6 +163,7 @@
 
 	onDestroy(() => {
 		if (unsubscribeSync) unsubscribeSync();
+		if (clockCheckInterval) clearInterval(clockCheckInterval);
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('popstate', handlePopState);
 		}
@@ -200,8 +260,42 @@
 		// 4. Attempt immediate sync
 		triggerSync();
 
-		successToast = `${record.punch_type === 'in' ? 'TIME IN' : 'TIME OUT'} recorded! Saved locally & queued for sync.`;
+		// 5. Save photo to device gallery
+		await saveToGallery(payload.blob, record.punch_type, record.captured_at);
+
+		successToast = `${record.punch_type === 'in' ? 'TIME IN' : 'TIME OUT'} recorded! Attendance record saved locally & queued for sync.`;
 		setTimeout(() => { successToast = null; }, 4500);
+	}
+
+	/**
+	 * Attempt to save the captured selfie to the device gallery.
+	 * Uses Web Share API (Android/iOS 15+) with fallback to programmatic download.
+	 */
+	async function saveToGallery(blob: Blob, punchType: string, capturedAt: string) {
+		const label = punchType === 'in' ? 'TIME-IN' : 'TIME-OUT';
+		const dateStr = new Date(capturedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19);
+		const filename = `DTRCam_${label}_${dateStr}.jpg`;
+		const file = new File([blob], filename, { type: 'image/jpeg' });
+
+		// Try Web Share API (saves to gallery on Android Chrome & iOS 15+)
+		if (navigator.canShare && navigator.canShare({ files: [file] })) {
+			try {
+				await navigator.share({ files: [file], title: `DTRCam ${label}` });
+				return;
+			} catch {
+				// User cancelled share or browser denied — fall through to download
+			}
+		}
+
+		// Fallback: trigger a download (goes to Downloads folder on most platforms)
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		setTimeout(() => URL.revokeObjectURL(url), 5000);
 	}
 </script>
 
@@ -210,6 +304,32 @@
 		<div class="toast-success" role="status">
 			<CheckCircle size={18} />
 			<span>{successToast}</span>
+		</div>
+	{/if}
+
+	<!-- Clock Desync Warning Banner -->
+	{#if clockState.isDrifted}
+		<div class="alert-banner clock-skew-banner" role="alert">
+			<AlertTriangle size={20} class="alert-icon" />
+			<div class="alert-content">
+				<strong class="alert-title">Phone Clock Out of Sync</strong>
+				<p class="alert-msg">
+					Your phone time is {clockState.driftDescription} from DTRCam server time. Please enable <em>Set Time Automatically</em> in phone settings to avoid attendance records being quarantined.
+				</p>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Quarantined Records Warning Banner -->
+	{#if quarantinedRecords.length > 0}
+		<div class="alert-banner quarantine-notice-banner" role="alert">
+			<ShieldAlert size={20} class="alert-icon" />
+			<div class="alert-content">
+				<strong class="alert-title">Quarantined Record Notice ({quarantinedRecords.length})</strong>
+				<p class="alert-msg">
+					{quarantinedRecords.length === 1 ? 'An attendance record has been' : 'Attendance records have been'} quarantined for administrator review: <strong>{quarantinedRecords[0].quarantine_reason || 'Flagged for verification'}</strong>.
+				</p>
+			</div>
 		</div>
 	{/if}
 
@@ -238,16 +358,30 @@
 
 	<!-- TIME IN / TIME OUT Action Buttons -->
 	<section class="actions">
-		<button class="punch-btn time-in" onclick={() => openCamera('in')}>
+		<button
+			class="punch-btn time-in"
+			class:btn-disabled={timeInDisabled}
+			disabled={timeInDisabled}
+			onclick={() => openCamera('in')}
+		>
 			<span class="punch-icon"><LogIn size={28} /></span>
 			<span class="punch-label">TIME IN</span>
-			<span class="punch-caption">Record arrival selfie</span>
+			<span class="punch-caption">
+				{#if timeInDisabled}Already timed in — backup saved{:else}Record arrival selfie{/if}
+			</span>
 		</button>
 
-		<button class="punch-btn time-out" onclick={() => openCamera('out')}>
+		<button
+			class="punch-btn time-out"
+			class:btn-disabled={timeOutDisabled}
+			disabled={timeOutDisabled}
+			onclick={() => openCamera('out')}
+		>
 			<span class="punch-icon"><LogOut size={28} /></span>
 			<span class="punch-label">TIME OUT</span>
-			<span class="punch-caption">Record departure selfie</span>
+			<span class="punch-caption">
+				{#if timeOutDisabled}Already timed out — backup saved{:else}Record departure selfie{/if}
+			</span>
 		</button>
 	</section>
 
@@ -270,13 +404,13 @@
 			</button>
 		</div>
 
-		{#if todayRecords.length === 0}
+		{#if visibleTodayRecords().length === 0}
 			<p class="empty-state">No records yet — tap TIME IN when you arrive.</p>
 		{:else}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			{#each todayRecords as record}
-				<div class="punch-item" onclick={() => openRecord(record)}>
+			{#each visibleTodayRecords() as record}
+				<div class="punch-item" class:duplicate-row={isDuplicate(record)} onclick={() => openRecord(record)}>
 					<span
 						class="type-pill"
 						class:pill-in={record.punch_type === 'in'}
@@ -301,6 +435,19 @@
 								<FileText size={12} class="inline-icon" /> {record.location_text || 'Manual'}
 							{/if}
 						</span>
+						{#if isDuplicate(record)}
+							<div class="quarantine-pill-wrap">
+								<span class="pill-duplicate" title="Backup copy — primary already on cloud">
+									<Cloud size={11} class="inline-icon" /> DUPLICATE
+								</span>
+							</div>
+						{:else if record.status === 'quarantined'}
+							<div class="quarantine-pill-wrap">
+								<span class="pill-quarantined" title={record.quarantine_reason || 'Quarantined for review'}>
+									<AlertTriangle size={11} class="inline-icon" /> QUARANTINED
+								</span>
+							</div>
+						{/if}
 					</div>
 
 					<div class="punch-item-right">
@@ -356,7 +503,53 @@
 			</div>
 		{/if}
 
+		{#if selectedRecord.status === 'quarantined'}
+			{#if isDuplicate(selectedRecord)}
+				<div class="detail-duplicate-card">
+					<div class="detail-duplicate-header">
+						<Cloud size={18} class="inline-icon" />
+						<strong>Duplicate Backup Copy</strong>
+					</div>
+					<p class="detail-duplicate-reason">
+						This is an extra copy kept for your peace of mind. Your original
+						{selectedRecord.punch_type === 'in' ? 'TIME IN' : 'TIME OUT'} is already verified and safe on the cloud.
+					</p>
+				</div>
+			{:else}
+				<div class="detail-quarantine-card">
+					<div class="detail-quarantine-header">
+						<ShieldAlert size={18} class="inline-icon" />
+						<strong>Record Quarantined for Admin Review</strong>
+					</div>
+					<p class="detail-quarantine-reason">
+						{selectedRecord.quarantine_reason || 'Flagged for administrator review (clock skew or verification check)'}
+					</p>
+				</div>
+			{/if}
+		{/if}
+
 		<div class="detail-info">
+			<div class="info-row">
+				<span class="info-label">Verification Status</span>
+				{#if isDuplicate(selectedRecord)}
+					<span class="info-value status-duplicate">
+						<Cloud size={14} class="inline-icon" /> Duplicate (Backup Copy)
+					</span>
+				{:else if selectedRecord.status === 'quarantined'}
+					<span class="info-value status-quarantined">
+						<AlertTriangle size={14} class="inline-icon" /> Quarantined (Pending Review)
+					</span>
+				{:else if selectedRecord.status === 'late_sync'}
+					<span class="info-value status-late">
+						<Clock size={14} class="inline-icon" /> Late Sync (Accepted)
+					</span>
+				{:else}
+					<span class="info-value status-accepted">
+						<CheckCircle size={14} class="inline-icon" /> Verified & Accepted
+					</span>
+				{/if}
+			</div>
+
 			<div class="info-row">
 				<span class="info-label">Captured At</span>
 				<span class="info-value">
@@ -368,7 +561,7 @@
 				<span class="info-label">Sync Status</span>
 				<span class="info-value sync-value" class:synced={selectedRecord.synced}>
 					{#if selectedRecord.synced}
-						<CheckCircle size={14} class="inline-icon" /> Synced
+						<CheckCircle size={14} class="inline-icon" /> Synced to Server
 					{:else}
 						<Clock size={14} class="inline-icon" /> Queued on Device
 					{/if}
@@ -428,8 +621,8 @@
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
-		background: color-mix(in srgb, var(--accent, #4ade80) 15%, #1a1a1a);
-		border: 1px solid var(--accent, #4ade80);
+		background: color-mix(in srgb, var(--accent, #ede947) 15%, #1a1a1a);
+		border: 1px solid var(--accent, #ede947);
 		color: #ffffff;
 		padding: 0.75rem 1rem;
 		border-radius: 10px;
@@ -438,14 +631,65 @@
 		animation: fadeIn 0.2s ease-out;
 	}
 
+	.alert-banner {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		padding: 0.85rem 1rem;
+		border-radius: 12px;
+		animation: fadeIn 0.25s ease-out;
+	}
+
+	.alert-icon {
+		flex-shrink: 0;
+		margin-top: 0.1rem;
+	}
+
+	.alert-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		font-size: 0.85rem;
+		line-height: 1.4;
+	}
+
+	.alert-title {
+		font-weight: 700;
+		font-size: 0.9rem;
+	}
+
+	.alert-msg {
+		opacity: 0.92;
+	}
+
+	.clock-skew-banner {
+		background: rgba(222, 77, 20, 0.15);
+		border: 1px solid rgba(222, 77, 20, 0.45);
+		color: #ff9d66;
+	}
+
+	.clock-skew-banner .alert-title {
+		color: #ffffff;
+	}
+
+	.quarantine-notice-banner {
+		background: rgba(219, 70, 62, 0.18);
+		border: 1px solid rgba(219, 70, 62, 0.5);
+		color: #ff8c85;
+	}
+
+	.quarantine-notice-banner .alert-title {
+		color: #ffffff;
+	}
+
 	.sync-banner {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.65rem 1rem;
 		border-radius: 10px;
-		background: color-mix(in srgb, var(--warning, #fb923c) 15%, #1a1a1a);
-		border: 1px solid var(--warning, #fb923c);
+		background: rgba(222, 77, 20, 0.15);
+		border: 1px solid rgba(222, 77, 20, 0.4);
 		color: #ffffff;
 		font-size: 0.85rem;
 	}
@@ -524,16 +768,34 @@
 		opacity: 0.85;
 	}
 
+	/* Disabled (backup duplicate already saved) — clearly greyed out */
+	.punch-btn:disabled {
+		filter: grayscale(1);
+		opacity: 0.4;
+		cursor: not-allowed;
+		border-style: dashed;
+	}
+
+	.punch-btn:disabled .punch-icon,
+	.punch-btn:disabled .punch-label {
+		color: var(--muted, #888);
+	}
+
+	.punch-btn:disabled .punch-caption {
+		color: var(--muted, #888);
+		font-weight: 700;
+	}
+
 	.time-in {
-		background: color-mix(in srgb, #4ade80 18%, #1a1a1a);
-		border: 2px solid #4ade80;
-		color: #4ade80;
+		background: linear-gradient(135deg, rgba(34, 197, 94, 0.22) 0%, rgba(237, 233, 71, 0.08) 50%, rgba(36, 21, 74, 0.9) 100%);
+		border: 2px solid #22c55e;
+		color: #22c55e;
 	}
 
 	.time-out {
-		background: color-mix(in srgb, #fb923c 18%, #1a1a1a);
-		border: 2px solid #fb923c;
-		color: #fb923c;
+		background: linear-gradient(135deg, rgba(222, 77, 20, 0.2) 0%, rgba(219, 70, 62, 0.15) 50%, rgba(36, 21, 74, 0.9) 100%);
+		border: 2px solid var(--accent-orange, #de4d14);
+		color: var(--accent-orange, #de4d14);
 	}
 
 	.punch-icon {
@@ -652,13 +914,15 @@
 	}
 
 	.pill-in {
-		background: #166534;
-		color: #4ade80;
+		background: rgba(34, 197, 94, 0.2);
+		color: #22c55e;
+		border: 1px solid rgba(34, 197, 94, 0.45);
 	}
 
 	.pill-out {
-		background: #9a3412;
-		color: #fb923c;
+		background: rgba(222, 77, 20, 0.2);
+		color: var(--accent-orange, #de4d14);
+		border: 1px solid rgba(222, 77, 20, 0.4);
 	}
 
 	.punch-meta {
@@ -667,6 +931,52 @@
 		gap: 0.1rem;
 		overflow: hidden;
 		flex: 1;
+	}
+
+	.punch-time-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.pill-quarantined {
+		font-size: 0.68rem;
+		font-weight: 800;
+		padding: 0.15rem 0.45rem;
+		border-radius: 4px;
+		background: rgba(219, 70, 62, 0.2);
+		border: 1px solid rgba(219, 70, 62, 0.5);
+		color: #ff8c85;
+		letter-spacing: 0.03em;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	/* Duplicate = informational (not a warning) */
+	.pill-duplicate {
+		font-size: 0.68rem;
+		font-weight: 800;
+		padding: 0.15rem 0.45rem;
+		border-radius: 4px;
+		background: rgba(59, 130, 246, 0.15);
+		border: 1px solid rgba(59, 130, 246, 0.4);
+		color: #93c5fd;
+		letter-spacing: 0.03em;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.duplicate-row {
+		background: rgba(59, 130, 246, 0.04);
+		padding: 0.65rem 0.5rem;
+		border-radius: 8px;
+		margin: 0.1rem 0;
+	}
+
+	.quarantine-pill-wrap {
+		margin-top: 0.2rem;
 	}
 
 	.time-text {
@@ -714,11 +1024,90 @@
 	.detail-page {
 		position: fixed;
 		inset: 0;
-		background: #0d0d0d;
+		background: var(--bg, #140d2b);
 		display: flex;
 		flex-direction: column;
 		z-index: 100;
 		overflow-y: auto;
+	}
+
+	.detail-quarantine-card {
+		margin: 1rem 1rem 0;
+		padding: 0.85rem 1rem;
+		background: rgba(219, 70, 62, 0.2);
+		border: 1px solid rgba(219, 70, 62, 0.5);
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.detail-quarantine-header {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		color: #ff8c85;
+		font-size: 0.9rem;
+	}
+
+	.detail-quarantine-reason {
+		font-size: 0.82rem;
+		color: #fca5a5;
+		line-height: 1.4;
+	}
+
+	/* Duplicate detail card — informational, not a warning */
+	.detail-duplicate-card {
+		margin: 1rem 1rem 0;
+		padding: 0.85rem 1rem;
+		background: rgba(59, 130, 246, 0.12);
+		border: 1px solid rgba(59, 130, 246, 0.4);
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.detail-duplicate-header {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		color: #93c5fd;
+		font-size: 0.9rem;
+	}
+
+	.detail-duplicate-reason {
+		font-size: 0.82rem;
+		color: #bfdbfe;
+		line-height: 1.4;
+	}
+
+	.status-quarantined {
+		color: #ff8c85 !important;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.status-duplicate {
+		color: #93c5fd !important;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.status-accepted {
+		color: #22c55e !important;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.status-late {
+		color: #de4d14 !important;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
 	}
 
 	.detail-topbar {
@@ -824,7 +1213,7 @@
 		justify-content: center;
 		gap: 0.4rem;
 		padding: 0.75rem;
-		background: #2563eb;
+		background: var(--accent-orange, #de4d14);
 		color: #ffffff;
 		border-radius: 8px;
 		text-decoration: none;
@@ -845,7 +1234,7 @@
 	}
 
 	.sync-value.synced {
-		color: #4ade80;
+		color: var(--accent, #ede947);
 	}
 
 	:global(.inline-icon) {

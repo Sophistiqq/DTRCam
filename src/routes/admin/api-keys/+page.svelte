@@ -236,13 +236,13 @@
 		font-size: 0.75rem;
 		padding: 0.15rem 0.5rem;
 		border-radius: 20px;
-		background: rgba(248, 113, 113, 0.2);
-		color: #f87171;
+		background: rgba(219, 70, 62, 0.2);
+		color: #db463e;
 	}
 
 	.status-pill.active {
-		background: rgba(74, 222, 128, 0.2);
-		color: #4ade80;
+		background: rgba(34, 197, 94, 0.2);
+		color: #22c55e;
 	}
 
 	.actions-cell {
@@ -258,11 +258,11 @@
 
 	.btn-primary {
 		padding: 0.65rem 1.1rem;
-		background: var(--accent, #4ade80);
-		color: #000000;
+		background: var(--accent, #ede947);
+		color: #160d33;
 		border: none;
 		border-radius: 8px;
-		font-weight: 700;
+		font-weight: 800;
 		font-size: 0.9rem;
 		cursor: pointer;
 		display: inline-flex;
@@ -273,8 +273,8 @@
 	.btn-outline {
 		padding: 0.65rem 1rem;
 		background: transparent;
-		border: 1px solid var(--border, #2a2a2a);
-		color: var(--text, #f0f0f0);
+		border: 1px solid var(--border, #3f2776);
+		color: var(--text, #ffffff);
 		border-radius: 8px;
 		font-size: 0.85rem;
 		cursor: pointer;
@@ -289,15 +289,15 @@
 	}
 
 	.btn-warning {
-		background: rgba(251, 146, 60, 0.15);
-		border: 1px solid rgba(251, 146, 60, 0.4);
-		color: #fb923c;
+		background: rgba(222, 77, 20, 0.15);
+		border: 1px solid rgba(222, 77, 20, 0.4);
+		color: #de4d14;
 	}
 
 	.btn-danger {
-		background: rgba(248, 113, 113, 0.15);
-		border: 1px solid rgba(248, 113, 113, 0.4);
-		color: #f87171;
+		background: rgba(219, 70, 62, 0.15);
+		border: 1px solid rgba(219, 70, 62, 0.4);
+		color: #db463e;
 	}
 
 	/* Alert Box */
@@ -307,8 +307,8 @@
 	}
 
 	.key-alert {
-		background: color-mix(in srgb, #4ade80 15%, #1a1a1a);
-		border: 1px solid #4ade80;
+		background: rgba(237, 233, 71, 0.12);
+		border: 1px solid #ede947;
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
@@ -321,7 +321,7 @@
 	}
 
 	.warning-tag {
-		background: #ef4444;
+		background: #db463e;
 		color: #ffffff;
 		font-size: 0.75rem;
 		font-weight: 700;
@@ -334,24 +334,24 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		background: #000000;
+		background: #140d2b;
 		padding: 0.75rem 1rem;
 		border-radius: 8px;
-		border: 1px solid #333333;
+		border: 1px solid var(--border, #3f2776);
 	}
 
 	.key-code {
 		font-family: monospace;
 		font-size: 0.95rem;
-		color: #4ade80;
+		color: #ede947;
 		word-break: break-all;
 		flex: 1;
 	}
 
 	.btn-copy {
 		padding: 0.45rem 0.85rem;
-		background: #262626;
-		border: 1px solid #444444;
+		background: #24154a;
+		border: 1px solid var(--border, #3f2776);
 		color: #ffffff;
 		border-radius: 6px;
 		font-weight: 600;
@@ -364,7 +364,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.8);
+		background: rgba(14, 7, 31, 0.85);
 		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
@@ -374,8 +374,8 @@
 	}
 
 	.modal-card {
-		background: #1a1a1a;
-		border: 1px solid var(--border, #2a2a2a);
+		background: var(--surface, #24154a);
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 14px;
 		padding: 1.5rem;
 		width: 100%;
@@ -401,8 +401,8 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		background: #262626;
-		border: 1px solid #333333;
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		color: #ffffff;
 		cursor: pointer;
 	}
@@ -421,19 +421,23 @@
 
 	.field label {
 		font-size: 0.8rem;
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 		font-weight: 500;
 	}
 
 	.field input {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		background: #0d0d0d;
-		border: 1px solid var(--border, #2a2a2a);
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 8px;
 		color: #ffffff;
 		font-size: 0.95rem;
 		outline: none;
+	}
+
+	.field input:focus {
+		border-color: var(--accent, #ede947);
 	}
 
 	.modal-actions {

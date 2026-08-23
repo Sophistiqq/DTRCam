@@ -12,14 +12,21 @@
 
 <style>
 	:global(:root) {
-		--bg: #0d0d0d;
-		--surface: #1a1a1a;
-		--border: #2a2a2a;
-		--text: #f0f0f0;
-		--muted: #888;
-		--accent: #4ade80;
-		--danger: #f87171;
-		--warning: #fb923c;
+		--bg: #140d2b;
+		--surface: #24154a;
+		--surface-alt: #2e1b62;
+		--surface-hover: #361f73;
+		--border: #3f2776;
+		--text: #ffffff;
+		--text-muted: #b8abdd;
+		--muted: #8e7db9;
+		--accent: #ede947;
+		--accent-orange: #de4d14;
+		--in: #22c55e;
+		--out: #de4d14;
+		--success: #22c55e;
+		--danger: #db463e;
+		--warning: #de4d14;
 	}
 
 	:global(*) {

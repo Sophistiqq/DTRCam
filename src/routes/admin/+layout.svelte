@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { logout } from '$lib/auth';
+	import AppLogo from '$lib/components/AppLogo.svelte';
 
 	let { children } = $props();
 </script>
 
 <div class="shell">
 	<header class="topbar">
-		<span class="app-name">DTRCam <span class="admin-badge">Admin</span></span>
+		<a href="/admin" class="app-brand">
+			<AppLogo size={28} />
+			<span class="app-name">DTRCam <span class="admin-badge">Admin</span></span>
+		</a>
 		<button type="button" class="btn-logout" onclick={() => logout()}>Logout</button>
 	</header>
 
@@ -38,17 +42,24 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.75rem 1rem;
-		background: var(--surface, #1a1a1a);
-		border-bottom: 1px solid var(--border, #2a2a2a);
+		background: var(--surface, #24154a);
+		border-bottom: 1px solid var(--border, #3f2776);
 		position: sticky;
 		top: 0;
 		z-index: 10;
 	}
 
+	.app-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		text-decoration: none;
+	}
+
 	.app-name {
 		font-weight: 800;
 		font-size: 1.1rem;
-		color: var(--accent, #4ade80);
+		color: #ffffff;
 		letter-spacing: -0.02em;
 		display: flex;
 		align-items: center;
@@ -57,10 +68,10 @@
 
 	.admin-badge {
 		font-size: 0.7rem;
-		font-weight: 600;
-		background: color-mix(in srgb, var(--accent, #4ade80) 20%, transparent);
-		color: var(--accent, #4ade80);
-		border: 1px solid color-mix(in srgb, var(--accent, #4ade80) 40%, transparent);
+		font-weight: 700;
+		background: color-mix(in srgb, var(--accent, #ede947) 18%, transparent);
+		color: var(--accent, #ede947);
+		border: 1px solid color-mix(in srgb, var(--accent, #ede947) 45%, transparent);
 		border-radius: 4px;
 		padding: 0.15rem 0.45rem;
 		letter-spacing: 0.06em;
@@ -81,16 +92,16 @@
 	}
 
 	.btn-logout:hover {
-		border-color: var(--danger, #f87171);
-		color: var(--danger, #f87171);
+		border-color: var(--danger, #db463e);
+		color: var(--danger, #db463e);
 	}
 
 	.nav {
 		display: flex;
 		gap: 0;
 		overflow-x: auto;
-		background: var(--surface, #1a1a1a);
-		border-bottom: 1px solid var(--border, #2a2a2a);
+		background: var(--surface, #24154a);
+		border-bottom: 1px solid var(--border, #3f2776);
 		scrollbar-width: none;
 	}
 
@@ -102,7 +113,7 @@
 		flex-shrink: 0;
 		padding: 0.65rem 1rem;
 		font-size: 0.875rem;
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 		text-decoration: none;
 		border-bottom: 2px solid transparent;
 		transition: color 0.15s, border-color 0.15s;
@@ -110,14 +121,14 @@
 	}
 
 	.nav-link:hover {
-		color: var(--text, #f0f0f0);
-		border-bottom-color: var(--border, #2a2a2a);
+		color: var(--text, #ffffff);
+		border-bottom-color: var(--border, #3f2776);
 	}
 
 	/* Active link — SvelteKit adds aria-current="page" automatically */
 	:global(.nav-link[aria-current='page']) {
-		color: var(--accent, #4ade80);
-		border-bottom-color: var(--accent, #4ade80);
+		color: var(--accent, #ede947);
+		border-bottom-color: var(--accent, #ede947);
 	}
 
 	.content {

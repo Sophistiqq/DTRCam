@@ -2,7 +2,7 @@
  * Local record history storage and server-cache for on-device display.
  */
 
-import type { LocationSource, PunchType } from './types/database';
+import type { LocationSource, PunchStatus, PunchType } from './types/database';
 
 export interface LocalPunchRecord {
 	id: string;
@@ -19,6 +19,8 @@ export interface LocalPunchRecord {
 	thumb_url?: string;
 	photo_data_url?: string;
 	photo_path?: string | null;
+	status?: PunchStatus;
+	quarantine_reason?: string | null;
 	synced: boolean;
 }
 
@@ -138,6 +140,8 @@ export async function refreshRecordsFromServer(force = false, employeeId?: strin
 				location_text: row.location_text ?? null,
 				payload_sha256: row.payload_sha256 ?? '',
 				photo_path: row.photo_path,
+				status: row.status,
+				quarantine_reason: row.quarantine_reason ?? null,
 				thumb_url: local?.thumb_url,
 				synced: true
 			};

@@ -65,6 +65,19 @@
 							<span class="date-tag">{item.work_date}</span>
 						</div>
 
+						<!-- Anomaly Tags -->
+						<div class="anomaly-tags">
+							{#if item.quarantine_reason?.toLowerCase().includes('clock') || item.quarantine_reason?.toLowerCase().includes('future')}
+								<span class="tag-anomaly tag-clock">🕒 Clock Desync</span>
+							{/if}
+							{#if item.quarantine_reason?.toLowerCase().includes('duplicate')}
+								<span class="tag-anomaly tag-duplicate">👥 Duplicate Record</span>
+							{/if}
+							{#if item.quarantine_reason?.toLowerCase().includes('sha-256') || item.quarantine_reason?.toLowerCase().includes('mismatch')}
+								<span class="tag-anomaly tag-hash">🔐 Integrity Tamper</span>
+							{/if}
+						</div>
+
 						<div class="reason-banner">
 							<span class="reason-icon"><AlertTriangle size={15} /></span>
 							<span class="reason-text">{item.quarantine_reason}</span>
@@ -112,16 +125,16 @@
 		<div class="modal-card">
 			<div class="modal-header">
 				<h3>
-					{modalMode === 'accept' ? 'Force Accept Punch' : 'Discard Quarantined Punch'}
+					{modalMode === 'accept' ? 'Force Accept Record' : 'Discard Quarantined Record'}
 				</h3>
 				<button class="btn-close" onclick={closeModal}><X size={18} /></button>
 			</div>
 
 			<p class="modal-desc">
 				{#if modalMode === 'accept'}
-					Are you sure you want to approve this punch for <strong>{selectedPunch.full_name}</strong>? It will be marked as valid attendance.
+					Are you sure you want to approve this attendance record for <strong>{selectedPunch.full_name}</strong>? It will be marked as valid attendance.
 				{:else}
-					Discarding will supersede this punch for <strong>{selectedPunch.full_name}</strong> and exclude it from payroll.
+					Discarding will supersede this attendance record for <strong>{selectedPunch.full_name}</strong> and exclude it from payroll.
 				{/if}
 			</p>
 
@@ -269,13 +282,15 @@
 	}
 
 	.type-in {
-		background: #166534;
-		color: #4ade80;
+		background: rgba(34, 197, 94, 0.2);
+		color: #22c55e;
+		border: 1px solid rgba(34, 197, 94, 0.45);
 	}
 
 	.type-out {
-		background: #9a3412;
-		color: #fb923c;
+		background: rgba(222, 77, 20, 0.25);
+		color: #de4d14;
+		border: 1px solid rgba(222, 77, 20, 0.4);
 	}
 
 	.punch-body {
@@ -300,23 +315,56 @@
 
 	.emp-no {
 		font-size: 0.85rem;
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 		font-family: monospace;
 	}
 
 	.date-tag {
 		font-size: 0.8rem;
 		font-family: monospace;
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
+	}
+
+	.anomaly-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		margin: -0.25rem 0 0.15rem;
+	}
+
+	.tag-anomaly {
+		font-size: 0.72rem;
+		font-weight: 700;
+		padding: 0.15rem 0.5rem;
+		border-radius: 4px;
+		letter-spacing: 0.02em;
+	}
+
+	.tag-clock {
+		background: rgba(222, 77, 20, 0.2);
+		border: 1px solid rgba(222, 77, 20, 0.5);
+		color: #ff9d66;
+	}
+
+	.tag-duplicate {
+		background: rgba(219, 70, 62, 0.2);
+		border: 1px solid rgba(219, 70, 62, 0.5);
+		color: #ff8c85;
+	}
+
+	.tag-hash {
+		background: rgba(237, 233, 71, 0.15);
+		border: 1px solid rgba(237, 233, 71, 0.4);
+		color: #ede947;
 	}
 
 	.reason-banner {
 		display: flex;
 		align-items: flex-start;
 		gap: 0.5rem;
-		background: rgba(248, 113, 113, 0.15);
-		border: 1px solid rgba(248, 113, 113, 0.3);
-		color: #f87171;
+		background: rgba(219, 70, 62, 0.15);
+		border: 1px solid rgba(219, 70, 62, 0.3);
+		color: #db463e;
 		padding: 0.6rem 0.75rem;
 		border-radius: 8px;
 		font-size: 0.82rem;
@@ -328,7 +376,8 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 0.5rem;
 		font-size: 0.8rem;
-		background: #141414;
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		padding: 0.75rem;
 		border-radius: 8px;
 	}
@@ -340,7 +389,7 @@
 	}
 
 	.meta-label {
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 	}
 
 	.meta-val {
@@ -361,24 +410,24 @@
 		font-size: 0.85rem;
 		border-radius: 6px;
 		cursor: pointer;
-		font-weight: 700;
+		font-weight: 800;
 		text-align: center;
 	}
 
 	.btn-primary {
-		background: var(--accent, #4ade80);
-		color: #000000;
+		background: var(--accent, #ede947);
+		color: #160d33;
 		border: none;
 	}
 
 	.btn-outline-danger {
 		background: transparent;
-		border: 1px solid rgba(248, 113, 113, 0.4);
-		color: #f87171;
+		border: 1px solid rgba(219, 70, 62, 0.4);
+		color: #db463e;
 	}
 
 	.btn-danger-solid {
-		background: #ef4444;
+		background: #db463e;
 		color: #ffffff;
 		border: none;
 		border-radius: 8px;
@@ -390,8 +439,8 @@
 	.btn-outline {
 		padding: 0.65rem 1rem;
 		background: transparent;
-		border: 1px solid var(--border, #2a2a2a);
-		color: var(--text, #f0f0f0);
+		border: 1px solid var(--border, #3f2776);
+		color: var(--text, #ffffff);
 		border-radius: 8px;
 		font-size: 0.85rem;
 		cursor: pointer;
@@ -401,7 +450,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.8);
+		background: rgba(14, 7, 31, 0.85);
 		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
@@ -411,8 +460,8 @@
 	}
 
 	.modal-card {
-		background: #1a1a1a;
-		border: 1px solid var(--border, #2a2a2a);
+		background: var(--surface, #24154a);
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 14px;
 		padding: 1.5rem;
 		width: 100%;
@@ -438,15 +487,15 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		background: #262626;
-		border: 1px solid #333333;
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		color: #ffffff;
 		cursor: pointer;
 	}
 
 	.modal-desc {
 		font-size: 0.9rem;
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 		line-height: 1.4;
 	}
 
@@ -464,19 +513,23 @@
 
 	.field label {
 		font-size: 0.8rem;
-		color: var(--muted, #888);
+		color: var(--text-muted, #b8abdd);
 		font-weight: 500;
 	}
 
 	.field input {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		background: #0d0d0d;
-		border: 1px solid var(--border, #2a2a2a);
+		background: #140d2b;
+		border: 1px solid var(--border, #3f2776);
 		border-radius: 8px;
 		color: #ffffff;
 		font-size: 0.95rem;
 		outline: none;
+	}
+
+	.field input:focus {
+		border-color: var(--accent, #ede947);
 	}
 
 	.modal-actions {
