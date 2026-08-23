@@ -19,6 +19,7 @@
 	let selectedRecord = $state<LocalPunchRecord | null>(null);
 	let selectedRecordPhoto = $state<string | null>(null);
 	let isLoadingPhoto = $state(false);
+	let isRefreshing = $state(false);
 	let successToast = $state<string | null>(null);
 
 	let syncStatus = $state<SyncStatus>({
@@ -59,15 +60,32 @@
 		if (selectedRecord) closeRecord();
 	}
 
+	async function syncAndRefresh(force = true) {
+		if (isRefreshing) return;
+		isRefreshing = true;
+		try {
+			if (profile?.id) {
+				await refreshRecordsFromServer(force, profile.id);
+			}
+			refreshRecords();
+		} finally {
+			isRefreshing = false;
+		}
+	}
+
+	function handleVisibilityOrFocus() {
+		if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+			syncAndRefresh(true);
+		}
+	}
+
 	onMount(() => {
 		initTrustedClock();
 		initSyncEngine();
 		refreshRecords();
 
-		// Background server cache refresh (stale-while-revalidate)
-		if (profile?.id) {
-			refreshRecordsFromServer().then(() => refreshRecords());
-		}
+		// Immediate server data fetch upon login/load to pull any records from other devices
+		syncAndRefresh(true);
 
 		unsubscribeSync = subscribeSyncStatus((status) => {
 			syncStatus = status;
@@ -75,19 +93,37 @@
 		});
 
 		window.addEventListener('popstate', handlePopState);
+		document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+		window.addEventListener('focus', handleVisibilityOrFocus);
 	});
 
 	onDestroy(() => {
 		if (unsubscribeSync) unsubscribeSync();
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('popstate', handlePopState);
+			document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+			window.removeEventListener('focus', handleVisibilityOrFocus);
 		}
 	});
 
-	function refreshRecords() {
+	async function refreshRecords() {
 		const all = getLocalPunches();
 		const currentWorkDate = formatWorkDate(getTrustedTime().date);
-		todayRecords = all.filter((p) => p.work_date === currentWorkDate);
+		const filtered = all.filter((p) => p.work_date === currentWorkDate);
+
+		// Enrich any records that have photos in IndexedDB cache
+		const enriched = await Promise.all(
+			filtered.map(async (rec) => {
+				if (rec.thumb_url || rec.photo_data_url) return rec;
+				const cached = await getCachedPunchPhoto(rec.id);
+				if (cached) {
+					return { ...rec, thumb_url: cached };
+				}
+				return rec;
+			})
+		);
+
+		todayRecords = enriched;
 	}
 
 	function openCamera(type: PunchType) {
@@ -214,8 +250,20 @@
 	<!-- Today's Records -->
 	<section class="history-section">
 		<div class="history-header">
-			<span class="history-title">Today's Records</span>
-			<span class="work-date-badge">{todayWorkDate}</span>
+			<div class="history-header-left">
+				<span class="history-title">Today's Records</span>
+				<span class="work-date-badge">{todayWorkDate}</span>
+			</div>
+			<button
+				class="btn-refresh"
+				onclick={() => syncAndRefresh(true)}
+				disabled={isRefreshing}
+				title="Refresh and sync latest records from server"
+				aria-label="Refresh records"
+			>
+				<span class="refresh-icon" class:spin-icon={isRefreshing}>🔄</span>
+				<span class="refresh-label">{isRefreshing ? 'Syncing…' : 'Refresh'}</span>
+			</button>
 		</div>
 
 		{#if todayRecords.length === 0}
@@ -259,6 +307,8 @@
 						{/if}
 						{#if record.thumb_url || record.photo_data_url}
 							<img src={record.thumb_url || record.photo_data_url} alt="thumb" class="thumb-img" />
+						{:else if record.photo_path || record.synced}
+							<img src="/api/punch/photo?id={record.id}" alt="thumb" class="thumb-img" loading="lazy" />
 						{/if}
 					</div>
 				</div>
@@ -506,6 +556,12 @@
 		margin-bottom: 0.25rem;
 	}
 
+	.history-header-left {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
 	.history-title {
 		font-size: 0.8rem;
 		font-weight: 700;
@@ -518,6 +574,41 @@
 		font-size: 0.75rem;
 		font-family: monospace;
 		color: var(--muted, #888);
+	}
+
+	.btn-refresh {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid var(--border, #2a2a2a);
+		color: var(--muted, #888);
+		border-radius: 6px;
+		padding: 0.2rem 0.5rem;
+		font-size: 0.75rem;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.15s;
+	}
+
+	.btn-refresh:hover:not(:disabled) {
+		color: var(--text, #f0f0f0);
+		border-color: #444;
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	.btn-refresh:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
+	.refresh-icon {
+		font-size: 0.75rem;
+		display: inline-block;
+	}
+
+	.refresh-label {
+		font-weight: 500;
 	}
 
 	.empty-state {

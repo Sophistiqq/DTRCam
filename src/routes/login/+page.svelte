@@ -1,11 +1,20 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
 
 	let submitting = $state(false);
 	let errorMessage = $state<string | null>(null);
+
+	$effect(() => {
+		const profile = $page.data.profile;
+		if (profile && profile.is_active) {
+			goto(profile.role === 'admin' ? '/admin' : '/punch', { replaceState: true });
+		}
+	});
 </script>
 
 <div class="page">

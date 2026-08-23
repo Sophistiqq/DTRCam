@@ -1,5 +1,6 @@
 import { getSupabaseClient } from './supabase';
 import { goto } from '$app/navigation';
+import { clearLocalHistory } from './history';
 
 /** Convert employee number to internal email alias */
 export function empNoToEmail(empNo: string): string {
@@ -22,6 +23,12 @@ export async function login(empNo: string, password: string): Promise<string | n
 
 /** Logout and redirect to login page */
 export async function logout(): Promise<void> {
+	if (typeof window !== 'undefined') {
+		try {
+			clearLocalHistory();
+			localStorage.removeItem('dtrcam_cached_profile');
+		} catch {}
+	}
 	const supabase = getSupabaseClient();
 	await supabase.auth.signOut();
 	goto('/login');

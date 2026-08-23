@@ -4,8 +4,16 @@ import type { CookieOptions } from '@supabase/ssr';
 import { env } from '$env/dynamic/public';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 import { supabaseAdmin } from '$lib/server/supabase';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import type { Database } from '$lib/types/database';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	const { profile } = locals;
+	if (profile && profile.is_active) {
+		redirect(302, profile.role === 'admin' ? '/admin' : '/punch');
+	}
+	return {};
+};
 
 export const actions: Actions = {
 	default: async (event) => {
