@@ -18,8 +18,8 @@ services:
         generateValue: true
       - key: LATE_SYNC_HOURS
         value: "12"
-      - key: RETAKE_GRACE_MINUTES
-        value: "10"
+      - key: CLOCK_DRIFT_TOLERANCE_MINUTES
+        value: "2"
       - key: FUTURE_TOLERANCE_MINUTES
         value: "2"
       - key: PUBLIC_SENTRY_DSN

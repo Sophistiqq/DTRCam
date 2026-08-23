@@ -84,7 +84,7 @@ Per your decision, validation is strict. Because offline duration is legitimate,
   - `captured_at` more than tolerance ahead of server now → **reject → quarantine**.
   - Capture-to-upload gap beyond configurable window (default 12h) → accept but flag `late_sync`.
   - Payload hash mismatch (photo altered between capture and upload) → **reject → quarantine**.
-  - Duplicate `(employee, work_date, punch_type)` → rejected unless within retake grace window (default 10 min, replaces prior punch; prior kept for audit).
+  - Duplicate `(employee, work_date, punch_type)` → rejected → quarantine as duplicate backup (no retake grace window; the primary record stays untouched).
   - Missing both GPS and manual location → reject client-side before queuing.
 
 Quarantined punches are visible in the admin panel; admins can discard or force-accept with a note.

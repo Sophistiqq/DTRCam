@@ -7,7 +7,7 @@ import type { LocationSource, PunchStatus, PunchType } from '$lib/types/database
 // Tolerances
 const FUTURE_TOLERANCE_MS = (parseInt(process.env.FUTURE_TOLERANCE_MINUTES || '2', 10) || 2) * 60 * 1000;
 const LATE_SYNC_MS = (parseInt(process.env.LATE_SYNC_HOURS || '12', 10) || 12) * 60 * 60 * 1000;
-const RETAKE_GRACE_MS = (parseInt(process.env.RETAKE_GRACE_MINUTES || '10', 10) || 10) * 60 * 1000;
+const CLOCK_DRIFT_MS = (parseInt(process.env.CLOCK_DRIFT_TOLERANCE_MINUTES || '2', 10) || 2) * 60 * 1000;
 
 interface IngestMetadata {
 	id: string;
@@ -16,6 +16,7 @@ interface IngestMetadata {
 	punch_type: PunchType;
 	captured_at: string;
 	trusted_clock_epoch?: number;
+	clock_offset_ms?: number | null;
 	lat?: number | null;
 	lng?: number | null;
 	gps_accuracy_m?: number | null;
@@ -82,7 +83,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			quarantineReason = `Phone clock is out of sync with DTRCam server (${aheadSec}s in future)`;
 			anomalyFlags.future_clock_drift = true;
 			anomalyFlags.clock_desync = true;
-		} else if (metadata.clock_offset_ms && Math.abs(metadata.clock_offset_ms) > 120_000) {
+		} else if (metadata.clock_offset_ms && Math.abs(metadata.clock_offset_ms) > CLOCK_DRIFT_MS) {
 			status = 'quarantined';
 			const driftSec = Math.round(Math.abs(metadata.clock_offset_ms) / 1000);
 			quarantineReason = `Phone clock is out of sync with DTRCam trusted clock (${driftSec}s ${metadata.clock_offset_ms > 0 ? 'behind' : 'ahead'})`;
@@ -127,33 +128,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			}
 		}
 
-		// Validation E: Duplicate & Retake Grace Check
+		// Validation E: Duplicate check — any existing record of the same type on
+		// the same work date makes this punch a duplicate backup copy
 		const { data: existingPunches } = await supabaseAdmin
 			.from('punches')
-			.select('id, captured_at, status')
+			.select('id')
 			.eq('employee_id', employeeId)
 			.eq('work_date', metadata.work_date)
 			.eq('punch_type', metadata.punch_type)
-			.neq('status', 'superseded');
+			.neq('status', 'superseded')
+			.limit(1);
 
 		if (existingPunches && existingPunches.length > 0) {
-			const prior = existingPunches[0];
-			const priorCaptureEpoch = new Date(prior.captured_at).getTime();
-			const timeDiff = Math.abs(captureEpoch - priorCaptureEpoch);
-
-			if (timeDiff <= RETAKE_GRACE_MS) {
-				// Within grace period: supersede prior punch
-				await supabaseAdmin
-					.from('punches')
-					.update({ status: 'superseded' })
-					.eq('id', prior.id);
-				debugLog(`Superseded prior punch ${prior.id} within grace window (${Math.round(timeDiff / 1000)}s gap)`);
-			} else {
-				// Outside grace period
-				status = 'quarantined';
-				quarantineReason = `Duplicate ${metadata.punch_type.toUpperCase()} record on ${metadata.work_date} outside retake grace window`;
-				anomalyFlags.duplicate_outside_grace = true;
-			}
+			status = 'quarantined';
+			quarantineReason = `Duplicate ${metadata.punch_type.toUpperCase()} record on ${metadata.work_date}`;
+			anomalyFlags.duplicate_outside_grace = true;
 		}
 
 		// 2. Hash Chaining
