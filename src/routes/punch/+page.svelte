@@ -10,7 +10,7 @@
 	import { getSupabaseClient } from '$lib/supabase';
 	import type { PunchType } from '$lib/types/database';
 
-	import { cachePunchPhoto, getCachedPunchPhoto } from '$lib/queue/db';
+	import { cachePunchPhoto, getCachedPunchPhoto, getOrFetchPunchPhoto } from '$lib/queue/db';
 
 	const profile = $derived($page.data.profile);
 
@@ -18,6 +18,7 @@
 	let todayRecords = $state<LocalPunchRecord[]>([]);
 	let selectedRecord = $state<LocalPunchRecord | null>(null);
 	let selectedRecordPhoto = $state<string | null>(null);
+	let isLoadingPhoto = $state(false);
 	let successToast = $state<string | null>(null);
 
 	let syncStatus = $state<SyncStatus>({
@@ -36,16 +37,22 @@
 		selectedRecordPhoto = record.thumb_url || null; // Instant low-res fallback
 		history.pushState({ detail: true }, '');
 
-		// Asynchronously load full-resolution photo from IndexedDB
-		const fullPhoto = await getCachedPunchPhoto(record.id);
-		if (fullPhoto) {
-			selectedRecordPhoto = fullPhoto;
+		// Retrieve from IndexedDB cache or fetch from storage & save locally
+		isLoadingPhoto = !selectedRecordPhoto;
+		try {
+			const fullPhoto = await getOrFetchPunchPhoto(record.id);
+			if (fullPhoto) {
+				selectedRecordPhoto = fullPhoto;
+			}
+		} finally {
+			isLoadingPhoto = false;
 		}
 	}
 
 	function closeRecord() {
 		selectedRecord = null;
 		selectedRecordPhoto = null;
+		isLoadingPhoto = false;
 	}
 
 	function handlePopState() {
@@ -283,6 +290,15 @@
 
 		{#if selectedRecordPhoto}
 			<img src={selectedRecordPhoto} alt="Record capture" class="detail-photo" />
+		{:else if isLoadingPhoto}
+			<div class="detail-photo-state">
+				<span class="spin-icon">🔄</span>
+				<span>Loading verified photo from storage…</span>
+			</div>
+		{:else}
+			<div class="detail-photo-state empty">
+				<span>📷 Photo stored on server (unavailable offline)</span>
+			</div>
 		{/if}
 
 		<div class="detail-info">
@@ -638,6 +654,25 @@
 		width: 100%;
 		height: auto;
 		display: block;
+	}
+
+	.detail-photo-state {
+		width: 100%;
+		min-height: 240px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		background: #161616;
+		color: #9ca3af;
+		font-size: 0.9rem;
+		padding: 2rem;
+		text-align: center;
+	}
+
+	.detail-photo-state.empty {
+		color: #6b7280;
 	}
 
 	.detail-info {

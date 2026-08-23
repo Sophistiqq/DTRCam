@@ -76,26 +76,32 @@ export async function renderPunchOverlay(options: OverlayOptions): Promise<Overl
 	ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, canvasW, canvasH);
 	ctx.restore();
 
-	// 2. Dark gradient banner at the bottom
-	const bannerHeight = canvasH * 0.28;
-	const bannerY = canvasH - bannerHeight;
+	// 2. Scale factor based on canvas resolution (1080 reference)
+	const fs = canvasW / 1080;
+	const paddingX = canvasW * 0.045;
+	const bottomPadding = 32 * fs;
 
-	const gradient = ctx.createLinearGradient(0, bannerY - 30, 0, canvasH);
+	// Calculate vertical positions from the bottom upwards so it always sits at bottom
+	const watermarkY = canvasH - bottomPadding;
+	const locationY = watermarkY - 46 * fs;
+	const nameY = locationY - 52 * fs;
+	const badgeRowY = nameY - 56 * fs;
+
+	// 3. Dark gradient banner at the bottom (starts just above the badge)
+	const gradientFadeTop = 45 * fs;
+	const gradientStartY = Math.max(0, badgeRowY - 32 * fs - gradientFadeTop);
+	const gradientHeight = canvasH - gradientStartY;
+
+	const gradient = ctx.createLinearGradient(0, gradientStartY, 0, canvasH);
 	gradient.addColorStop(0, 'rgba(10, 10, 10, 0)');
-	gradient.addColorStop(0.25, 'rgba(10, 10, 10, 0.75)');
-	gradient.addColorStop(0.6, 'rgba(10, 10, 10, 0.92)');
+	gradient.addColorStop(0.2, 'rgba(10, 10, 10, 0.65)');
+	gradient.addColorStop(0.55, 'rgba(10, 10, 10, 0.88)');
 	gradient.addColorStop(1, 'rgba(10, 10, 10, 0.98)');
 
 	ctx.fillStyle = gradient;
-	ctx.fillRect(0, bannerY - 30, canvasW, bannerHeight + 30);
+	ctx.fillRect(0, gradientStartY, canvasW, gradientHeight);
 
-
-
-	// 3. Overlay text — font sizes scale with canvas width
-	const fs = canvasW / 1080;
-	const paddingX = canvasW * 0.045;
-	let currentY = bannerY + 65 * fs;
-
+	// 4. Overlay text
 	// Line 1: Punch Badge + Date & Time
 	const badgeText = punchType === 'in' ? 'TIME IN' : 'TIME OUT';
 	const badgeBg = punchType === 'in' ? '#166534' : '#9a3412';
@@ -109,42 +115,39 @@ export async function renderPunchOverlay(options: OverlayOptions): Promise<Overl
 	ctx.strokeStyle = badgeBorder;
 	ctx.lineWidth = 2;
 	ctx.beginPath();
-	ctx.roundRect(paddingX, currentY - 32 * fs, badgeWidth, badgeHeight, 8);
+	ctx.roundRect(paddingX, badgeRowY - 32 * fs, badgeWidth, badgeHeight, 8);
 	ctx.fill();
 	ctx.stroke();
 
 	ctx.fillStyle = '#ffffff';
 	ctx.textAlign = 'left';
-	ctx.fillText(badgeText, paddingX + 18 * fs, currentY);
+	ctx.fillText(badgeText, paddingX + 18 * fs, badgeRowY);
 
 	const timeStr = formatDateTimeDisplay(date);
 	ctx.font = `bold ${Math.round(36 * fs)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace`;
 	ctx.fillStyle = '#ffffff';
-	ctx.fillText(timeStr, paddingX + badgeWidth + 24 * fs, currentY);
+	ctx.fillText(timeStr, paddingX + badgeWidth + 24 * fs, badgeRowY);
 
 	// Line 2: Employee Name and No
-	currentY += 56 * fs;
 	ctx.font = `bold ${Math.round(38 * fs)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
 	ctx.fillStyle = '#f3f4f6';
-	ctx.fillText(`${employeeName} (#${employeeNo})`, paddingX, currentY);
+	ctx.fillText(`${employeeName} (#${employeeNo})`, paddingX, nameY);
 
 	// Line 3: Location
-	currentY += 52 * fs;
 	ctx.font = `500 ${Math.round(30 * fs)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace`;
 
 	if (locationSource === 'gps' && coords) {
 		ctx.fillStyle = '#60a5fa';
-		ctx.fillText(`📍 GPS: ${formatCoordinates(coords.lat, coords.lng, coords.accuracy)}`, paddingX, currentY);
+		ctx.fillText(`📍 GPS: ${formatCoordinates(coords.lat, coords.lng, coords.accuracy)}`, paddingX, locationY);
 	} else {
 		ctx.fillStyle = '#fbbf24';
-		ctx.fillText(`📝 MANUAL: ${locationText || 'No location provided'}`, paddingX, currentY);
+		ctx.fillText(`📝 MANUAL: ${locationText || 'No location provided'}`, paddingX, locationY);
 	}
 
 	// Line 4: Watermark
-	currentY += 46 * fs;
 	ctx.font = `400 ${Math.round(20 * fs)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace`;
 	ctx.fillStyle = '#9ca3af';
-	ctx.fillText('DTRCam Official Punch Record • Verified Capture', paddingX, currentY);
+	ctx.fillText('DTRCam Official Punch Record • Verified Capture', paddingX, watermarkY);
 
 	// 4. Generate thumbnail (~120px max dimension, ~3-5KB) for fast offline list display
 	const thumbScale = Math.min(120 / canvasW, 120 / canvasH, 1);

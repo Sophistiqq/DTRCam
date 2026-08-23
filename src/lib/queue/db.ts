@@ -172,3 +172,34 @@ export async function getCachedPunchPhoto(id: string): Promise<string | null> {
 		return null;
 	}
 }
+
+/**
+ * Retrieve punch photo from local IndexedDB cache, or fetch it once from
+ * the server/storage and save it locally in IndexedDB for subsequent views.
+ */
+export async function getOrFetchPunchPhoto(id: string): Promise<string | null> {
+	try {
+		// 1. Check local IndexedDB first
+		const localUrl = await getCachedPunchPhoto(id);
+		if (localUrl) return localUrl;
+
+		if (typeof window === 'undefined') return null;
+
+		// 2. Fetch from server endpoint
+		const response = await fetch(`/api/punch/photo?id=${encodeURIComponent(id)}`);
+		if (!response.ok) return null;
+
+		const blob = await response.blob();
+		if (!blob || blob.size === 0) return null;
+
+		// 3. Cache it in IndexedDB so we don't fetch it again
+		await cachePunchPhoto(id, blob);
+
+		// 4. Return object URL
+		return URL.createObjectURL(blob);
+	} catch (err) {
+		console.warn('[Photo] Error getting or fetching punch photo:', err);
+		return null;
+	}
+}
+
