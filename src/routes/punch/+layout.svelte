@@ -36,7 +36,7 @@
 		<span class="app-name">DTRCam</span>
 		<div class="topbar-right">
 			<span class="employee-name">{profile?.full_name ?? ''}</span>
-			<button class="btn-logout" onclick={() => logout()}>Logout</button>
+			<button type="button" class="btn-logout" onclick={() => logout()}>Logout</button>
 		</div>
 	</header>
 

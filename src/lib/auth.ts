@@ -26,6 +26,7 @@ export async function logout(): Promise<void> {
 	if (typeof window !== 'undefined') {
 		try {
 			localStorage.removeItem('dtrcam_cached_profile');
+			clearLocalHistory();
 		} catch {}
 	}
 	try {
@@ -33,7 +34,15 @@ export async function logout(): Promise<void> {
 		await supabase.auth.signOut();
 	} catch (err) {
 		console.warn('[Auth] SignOut error (offline or network failure):', err);
-	} finally {
+	}
+	try {
+		await fetch('/logout', { method: 'POST' });
+	} catch (err) {
+		console.warn('[Auth] Server signOut error:', err);
+	}
+	if (typeof window !== 'undefined') {
+		window.location.href = '/login';
+	} else {
 		goto('/login');
 	}
 }

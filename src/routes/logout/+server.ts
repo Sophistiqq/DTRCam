@@ -1,4 +1,4 @@
-import { redirect } from '@sveltejs/kit';
+import { json, redirect } from '@sveltejs/kit';
 import { createServerClient } from '@supabase/ssr';
 import type { CookieOptions } from '@supabase/ssr';
 import { env } from '$env/dynamic/public';
@@ -6,7 +6,7 @@ import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/publi
 import type { RequestHandler } from './$types';
 import type { Database } from '$lib/types/database';
 
-export const GET: RequestHandler = async (event) => {
+async function performLogout(event: Parameters<RequestHandler>[0]) {
 	const supabaseUrl = env.PUBLIC_SUPABASE_URL || PUBLIC_SUPABASE_URL;
 	const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY;
 
@@ -29,6 +29,14 @@ export const GET: RequestHandler = async (event) => {
 	});
 
 	await supabase.auth.signOut();
+}
 
+export const GET: RequestHandler = async (event) => {
+	await performLogout(event);
 	redirect(302, '/login');
+};
+
+export const POST: RequestHandler = async (event) => {
+	await performLogout(event);
+	return json({ success: true });
 };

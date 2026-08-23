@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { logout } from '$lib/auth';
+
 	let { children } = $props();
 </script>
 
 <div class="shell">
 	<header class="topbar">
 		<span class="app-name">DTRCam <span class="admin-badge">Admin</span></span>
-		<a href="/logout" class="btn-logout">Logout</a>
+		<button type="button" class="btn-logout" onclick={() => logout()}>Logout</button>
 	</header>
 
 	<nav class="nav">
