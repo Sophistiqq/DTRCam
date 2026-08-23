@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: dtrcam
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: PUBLIC_SUPABASE_URL
+        sync: false
+      - key: PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: API_PEPPER
+        generateValue: true
+      - key: LATE_SYNC_HOURS
+        value: "12"
+      - key: RETAKE_GRACE_MINUTES
+        value: "10"
+      - key: FUTURE_TOLERANCE_MINUTES
+        value: "2"
+      - key: PUBLIC_SENTRY_DSN
+        sync: false
