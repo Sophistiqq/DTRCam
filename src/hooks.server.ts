@@ -3,6 +3,7 @@ import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { handleErrorWithSentry, sentryHandle } from '@sentry/sveltekit';
 import type { Database } from '$lib/types/database';
+import { env } from '$env/dynamic/public';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 import { supabaseAdmin } from '$lib/server/supabase';
 import { initCronScheduler } from '$lib/server/cron';
@@ -11,8 +12,11 @@ import { initCronScheduler } from '$lib/server/cron';
 initCronScheduler();
 
 const authHandle: Handle = async ({ event, resolve }) => {
+	const supabaseUrl = env.PUBLIC_SUPABASE_URL || PUBLIC_SUPABASE_URL;
+	const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY;
+
 	// Create a per-request Supabase client that reads/writes cookies.
-	const supabase = createServerClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+	const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
 		cookies: {
 			getAll() {
 				return event.cookies.getAll();

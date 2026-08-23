@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { createServerClient } from '@supabase/ssr';
 import type { CookieOptions } from '@supabase/ssr';
+import { env } from '$env/dynamic/public';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 import { supabaseAdmin } from '$lib/server/supabase';
 import type { Actions } from './$types';
@@ -16,7 +17,10 @@ export const actions: Actions = {
 			return fail(400, { error: 'Employee number and password are required.' });
 		}
 
-		const supabase = createServerClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		const supabaseUrl = env.PUBLIC_SUPABASE_URL || PUBLIC_SUPABASE_URL;
+		const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY;
+
+		const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
 			cookies: {
 				getAll() {
 					return event.cookies.getAll();

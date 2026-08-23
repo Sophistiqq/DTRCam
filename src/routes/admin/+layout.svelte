@@ -113,7 +113,7 @@
 	}
 
 	/* Active link — SvelteKit adds aria-current="page" automatically */
-	.nav-link[aria-current='page'] {
+	:global(.nav-link[aria-current='page']) {
 		color: var(--accent, #4ade80);
 		border-bottom-color: var(--accent, #4ade80);
 	}
