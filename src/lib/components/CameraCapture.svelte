@@ -6,6 +6,7 @@
 	import { injectExif } from '$lib/camera/exif';
 	import { computeBlobSha256 } from '$lib/crypto';
 	import type { PunchType, LocationSource } from '$lib/types/database';
+	import { X, SwitchCamera, MapPin, AlertTriangle, FileText, Camera } from 'lucide-svelte';
 
 	interface CapturePayload {
 		blob: Blob;
@@ -326,7 +327,9 @@
 
 	<!-- Top Controls -->
 	<div class="top-bar">
-		<button class="icon-btn" onclick={oncancel} aria-label="Cancel">✕</button>
+		<button class="icon-btn" onclick={oncancel} aria-label="Cancel">
+			<X size={22} />
+		</button>
 
 		<!-- GPS Status Pill -->
 		<button
@@ -340,15 +343,17 @@
 			{#if gpsStatus === 'acquiring'}
 				<span class="pulse-dot"></span> Acquiring GPS…
 			{:else if gpsStatus === 'ready' && gpsCoords}
-				🟢 GPS: {formatCoordinates(gpsCoords.lat, gpsCoords.lng, gpsCoords.accuracy)}
+				<MapPin size={13} /> GPS: {formatCoordinates(gpsCoords.lat, gpsCoords.lng, gpsCoords.accuracy)}
 			{:else if gpsStatus === 'manual'}
-				📝 {manualLocationSaved}
+				<FileText size={13} /> {manualLocationSaved}
 			{:else}
-				⚠️ No GPS (Tap to enter)
+				<AlertTriangle size={13} /> No GPS (Tap to enter)
 			{/if}
 		</button>
 
-		<button class="icon-btn" onclick={toggleCamera} aria-label="Flip camera">🔄</button>
+		<button class="icon-btn" onclick={toggleCamera} aria-label="Flip camera">
+			<SwitchCamera size={20} />
+		</button>
 	</div>
 
 	<!-- Live Viewfinder -->
@@ -357,7 +362,7 @@
 			<div class="camera-error-box">
 				<p>{cameraError}</p>
 				<button class="btn-fallback" onclick={() => fileInputEl?.click()}>
-					📷 Take Photo with Device Camera
+					<Camera size={18} class="inline-icon" /> Take Photo with Device Camera
 				</button>
 			</div>
 		{:else}

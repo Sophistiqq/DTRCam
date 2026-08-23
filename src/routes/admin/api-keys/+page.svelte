@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import { Plus, Key, Copy, Check, X } from 'lucide-svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -22,7 +23,7 @@
 			<p class="page-subtitle">Manage integration keys for the Visual FoxPro payroll system</p>
 		</div>
 		<button class="btn-primary" onclick={() => (showCreateModal = true)}>
-			➕ Generate API Key
+			<Plus size={16} class="inline-icon" /> Generate API Key
 		</button>
 	</div>
 
@@ -30,14 +31,18 @@
 	{#if form?.newKey}
 		<div class="alert-box key-alert">
 			<div class="key-alert-header">
-				<h4>🔑 New API Key Generated</h4>
+				<h4><Key size={18} class="inline-icon" /> New API Key Generated</h4>
 				<span class="warning-tag">Copy now — will never be shown again!</span>
 			</div>
 			<p class="key-label-text"><strong>Label:</strong> {form.newKey.label}</p>
 			<div class="key-copy-box">
 				<code class="key-code">{form.newKey.key}</code>
 				<button class="btn-copy" onclick={() => copyToClipboard(form?.newKey?.key || '')}>
-					{copied ? '✅ Copied!' : '📋 Copy'}
+					{#if copied}
+						<Check size={14} class="inline-icon" /> Copied!
+					{:else}
+						<Copy size={14} class="inline-icon" /> Copy
+					{/if}
 				</button>
 			</div>
 		</div>
@@ -106,7 +111,7 @@
 		<div class="modal-card">
 			<div class="modal-header">
 				<h3>Generate New API Key</h3>
-				<button class="btn-close" onclick={() => (showCreateModal = false)}>✕</button>
+				<button class="btn-close" onclick={() => (showCreateModal = false)}><X size={18} /></button>
 			</div>
 
 			<form

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import { Plus, CheckCircle, Key, X } from 'lucide-svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -18,7 +19,7 @@
 			<p class="page-subtitle">Manage field employee accounts and credentials</p>
 		</div>
 		<button class="btn-primary" onclick={() => (showAddModal = true)}>
-			➕ Add Employee
+			<Plus size={16} class="inline-icon" /> Add Employee
 		</button>
 	</div>
 
@@ -29,7 +30,7 @@
 
 	{#if form?.createdEmployee}
 		<div class="alert-box success">
-			<h4>✅ Employee Created Successfully!</h4>
+			<h4><CheckCircle size={18} class="inline-icon" /> Employee Created Successfully!</h4>
 			<p><strong>Employee No:</strong> {form.createdEmployee.employee_no}</p>
 			<p><strong>Full Name:</strong> {form.createdEmployee.full_name}</p>
 			<p><strong>Initial Password:</strong> <code>{form.createdEmployee.temp_password}</code></p>
@@ -78,7 +79,7 @@
 										empNo: emp.employee_no
 									})}
 							>
-								🔑 Reset Password
+								<Key size={13} class="inline-icon" /> Reset Password
 							</button>
 
 							<form method="POST" action="?/toggleActive" use:enhance class="inline-form">
@@ -107,7 +108,7 @@
 		<div class="modal-card">
 			<div class="modal-header">
 				<h3>Add New Employee</h3>
-				<button class="btn-close" onclick={() => (showAddModal = false)}>✕</button>
+				<button class="btn-close" onclick={() => (showAddModal = false)}><X size={18} /></button>
 			</div>
 
 			<form
@@ -183,7 +184,7 @@
 		<div class="modal-card">
 			<div class="modal-header">
 				<h3>Reset Password for {resetModalUser.name}</h3>
-				<button class="btn-close" onclick={() => (resetModalUser = null)}>✕</button>
+				<button class="btn-close" onclick={() => (resetModalUser = null)}><X size={18} /></button>
 			</div>
 
 			<form

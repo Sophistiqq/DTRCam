@@ -7,8 +7,21 @@
 	import { getLocalPunches, saveLocalPunch, refreshRecordsFromServer, type LocalPunchRecord } from '$lib/history';
 	import { enqueuePunch, getLatestQueuedHashForEmployee } from '$lib/queue/db';
 	import { initSyncEngine, triggerSync, subscribeSyncStatus, type SyncStatus } from '$lib/queue/sync';
-	import { getSupabaseClient } from '$lib/supabase';
 	import type { PunchType } from '$lib/types/database';
+	import {
+		CheckCircle,
+		RefreshCw,
+		Clock,
+		LogIn,
+		LogOut,
+		MapPin,
+		FileText,
+		Cloud,
+		HardDrive,
+		Camera,
+		ExternalLink,
+		ArrowLeft
+	} from 'lucide-svelte';
 
 	import { cachePunchPhoto, getCachedPunchPhoto, getOrFetchPunchPhoto } from '$lib/queue/db';
 
@@ -73,18 +86,12 @@
 		}
 	}
 
-	function handleVisibilityOrFocus() {
-		if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-			syncAndRefresh(true);
-		}
-	}
-
 	onMount(() => {
 		initTrustedClock();
 		initSyncEngine();
 		refreshRecords();
 
-		// Immediate server data fetch upon login/load to pull any records from other devices
+		// Initial server data fetch upon login/load to pull any records from other devices
 		syncAndRefresh(true);
 
 		unsubscribeSync = subscribeSyncStatus((status) => {
@@ -93,16 +100,12 @@
 		});
 
 		window.addEventListener('popstate', handlePopState);
-		document.addEventListener('visibilitychange', handleVisibilityOrFocus);
-		window.addEventListener('focus', handleVisibilityOrFocus);
 	});
 
 	onDestroy(() => {
 		if (unsubscribeSync) unsubscribeSync();
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('popstate', handlePopState);
-			document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-			window.removeEventListener('focus', handleVisibilityOrFocus);
 		}
 	});
 
@@ -205,7 +208,7 @@
 <div class="punch-page">
 	{#if successToast}
 		<div class="toast-success" role="status">
-			<span>✅</span>
+			<CheckCircle size={18} />
 			<span>{successToast}</span>
 		</div>
 	{/if}
@@ -215,10 +218,10 @@
 		<div class="sync-banner" class:syncing={syncStatus.isSyncing}>
 			<div class="sync-banner-info">
 				{#if syncStatus.isSyncing}
-					<span class="spin-icon">🔄</span>
+					<span class="spin-icon"><RefreshCw size={16} /></span>
 					<span>Syncing with server…</span>
 				{:else}
-					<span>⏳</span>
+					<Clock size={16} />
 					<span><strong>{syncStatus.pendingCount}</strong> record{syncStatus.pendingCount > 1 ? 's' : ''} queued (offline)</span>
 				{/if}
 			</div>
@@ -236,13 +239,13 @@
 	<!-- TIME IN / TIME OUT Action Buttons -->
 	<section class="actions">
 		<button class="punch-btn time-in" onclick={() => openCamera('in')}>
-			<span class="punch-icon">⏱</span>
+			<span class="punch-icon"><LogIn size={28} /></span>
 			<span class="punch-label">TIME IN</span>
 			<span class="punch-caption">Record arrival selfie</span>
 		</button>
 
 		<button class="punch-btn time-out" onclick={() => openCamera('out')}>
-			<span class="punch-icon">🏁</span>
+			<span class="punch-icon"><LogOut size={28} /></span>
 			<span class="punch-label">TIME OUT</span>
 			<span class="punch-caption">Record departure selfie</span>
 		</button>
@@ -262,7 +265,7 @@
 				title="Refresh and sync latest records from server"
 				aria-label="Refresh records"
 			>
-				<span class="refresh-icon" class:spin-icon={isRefreshing}>🔄</span>
+				<span class="refresh-icon" class:spin-icon={isRefreshing}><RefreshCw size={13} /></span>
 				<span class="refresh-label">{isRefreshing ? 'Syncing…' : 'Refresh'}</span>
 			</button>
 		</div>
@@ -293,18 +296,18 @@
 						</span>
 						<span class="loc-sub">
 							{#if record.location_source === 'gps' && record.lat && record.lng}
-								📍 {formatCoordinates(record.lat, record.lng, record.gps_accuracy_m)}
+								<MapPin size={12} class="inline-icon" /> {formatCoordinates(record.lat, record.lng, record.gps_accuracy_m)}
 							{:else}
-								📝 {record.location_text || 'Manual'}
+								<FileText size={12} class="inline-icon" /> {record.location_text || 'Manual'}
 							{/if}
 						</span>
 					</div>
 
 					<div class="punch-item-right">
 						{#if record.synced}
-							<span class="synced-badge">☁️</span>
+							<span class="synced-badge" title="Synced to server"><Cloud size={16} /></span>
 						{:else}
-							<span class="queued-badge">💾</span>
+							<span class="queued-badge" title="Saved locally"><HardDrive size={16} /></span>
 						{/if}
 						{#if record.thumb_url || record.photo_data_url}
 							<img src={record.thumb_url || record.photo_data_url} alt="thumb" class="thumb-img" />
@@ -333,7 +336,7 @@
 {#if selectedRecord}
 	<div class="detail-page">
 		<div class="detail-topbar">
-			<button class="btn-back" onclick={() => history.back()}>← Back</button>
+			<button class="btn-back" onclick={() => history.back()}><ArrowLeft size={18} class="inline-icon" /> Back</button>
 			<span class="detail-topbar-title">
 				{selectedRecord.punch_type === 'in' ? 'TIME IN' : 'TIME OUT'} Record
 			</span>
@@ -343,12 +346,13 @@
 			<img src={selectedRecordPhoto} alt="Record capture" class="detail-photo" />
 		{:else if isLoadingPhoto}
 			<div class="detail-photo-state">
-				<span class="spin-icon">🔄</span>
+				<span class="spin-icon"><RefreshCw size={24} /></span>
 				<span>Loading verified photo from storage…</span>
 			</div>
 		{:else}
 			<div class="detail-photo-state empty">
-				<span>📷 Photo stored on server (unavailable offline)</span>
+				<Camera size={24} />
+				<span>Photo stored on server (unavailable offline)</span>
 			</div>
 		{/if}
 
@@ -362,8 +366,12 @@
 
 			<div class="info-row">
 				<span class="info-label">Sync Status</span>
-				<span class="info-value">
-					{selectedRecord.synced ? '✅ Synced' : '⏳ Queued on Device'}
+				<span class="info-value sync-value" class:synced={selectedRecord.synced}>
+					{#if selectedRecord.synced}
+						<CheckCircle size={14} class="inline-icon" /> Synced
+					{:else}
+						<Clock size={14} class="inline-icon" /> Queued on Device
+					{/if}
 				</span>
 			</div>
 
@@ -390,7 +398,7 @@
 					rel="noopener noreferrer"
 					class="btn-maps"
 				>
-					🗺 Open in Google Maps
+					<ExternalLink size={16} /> Open in Google Maps
 				</a>
 			{:else if selectedRecord.location_text}
 				<div class="info-row">
@@ -814,6 +822,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		gap: 0.4rem;
 		padding: 0.75rem;
 		background: #2563eb;
 		color: #ffffff;
@@ -827,5 +836,20 @@
 
 	.btn-maps:hover {
 		opacity: 0.9;
+	}
+
+	.sync-value {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.sync-value.synced {
+		color: #4ade80;
+	}
+
+	:global(.inline-icon) {
+		display: inline-block;
+		vertical-align: middle;
 	}
 </style>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { Users, ShieldAlert, Key, ClipboardList } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -29,7 +30,7 @@
 
 	<div class="sections-grid">
 		<a href="/admin/employees" class="section-card">
-			<span class="section-icon">👥</span>
+			<span class="section-icon"><Users size={28} /></span>
 			<div>
 				<div class="section-name">Employees</div>
 				<div class="section-desc">Create accounts, reset passwords, and toggle active status</div>
@@ -37,7 +38,7 @@
 		</a>
 
 		<a href="/admin/quarantine" class="section-card">
-			<span class="section-icon">🛡️</span>
+			<span class="section-icon"><ShieldAlert size={28} /></span>
 			<div>
 				<div class="section-name">Quarantine Queue</div>
 				<div class="section-desc">Review and resolve flagged or suspicious punch records</div>
@@ -45,7 +46,7 @@
 		</a>
 
 		<a href="/admin/api-keys" class="section-card">
-			<span class="section-icon">🔑</span>
+			<span class="section-icon"><Key size={28} /></span>
 			<div>
 				<div class="section-name">API Keys</div>
 				<div class="section-desc">Generate and manage HMAC keys for the Visual FoxPro integration</div>
@@ -53,7 +54,7 @@
 		</a>
 
 		<a href="/admin/audit" class="section-card">
-			<span class="section-icon">📋</span>
+			<span class="section-icon"><ClipboardList size={28} /></span>
 			<div>
 				<div class="section-name">Audit Log</div>
 				<div class="section-desc">Inspect all administrative actions and security events</div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
+	import { ShieldCheck, AlertTriangle, MapPin, FileText, Trash2, CheckCircle, X } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -35,7 +36,7 @@
 
 	{#if data.quarantined.length === 0}
 		<div class="card empty-card">
-			<span class="empty-icon">🛡️</span>
+			<span class="empty-icon"><ShieldCheck size={48} /></span>
 			<h3>Queue is Clean!</h3>
 			<p>There are no quarantined attendance records awaiting review.</p>
 		</div>
@@ -65,7 +66,7 @@
 						</div>
 
 						<div class="reason-banner">
-							<span class="reason-icon">⚠️</span>
+							<span class="reason-icon"><AlertTriangle size={15} /></span>
 							<span class="reason-text">{item.quarantine_reason}</span>
 						</div>
 
@@ -82,9 +83,9 @@
 								<span class="meta-label">Location:</span>
 								<span class="meta-val">
 									{#if item.location_source === 'gps' && item.coords}
-										📍 {item.coords}
+										<MapPin size={12} class="inline-icon" /> {item.coords}
 									{:else}
-										📝 {item.location_text || 'Manual'}
+										<FileText size={12} class="inline-icon" /> {item.location_text || 'Manual'}
 									{/if}
 								</span>
 							</div>
@@ -92,10 +93,10 @@
 
 						<div class="card-actions">
 							<button class="btn-sm btn-outline-danger" onclick={() => openModal(item, 'discard')}>
-								🗑 Discard
+								<Trash2 size={14} class="inline-icon" /> Discard
 							</button>
 							<button class="btn-sm btn-primary" onclick={() => openModal(item, 'accept')}>
-								✅ Force Accept
+								<CheckCircle size={14} class="inline-icon" /> Force Accept
 							</button>
 						</div>
 					</div>
@@ -113,7 +114,7 @@
 				<h3>
 					{modalMode === 'accept' ? 'Force Accept Punch' : 'Discard Quarantined Punch'}
 				</h3>
-				<button class="btn-close" onclick={closeModal}>✕</button>
+				<button class="btn-close" onclick={closeModal}><X size={18} /></button>
 			</div>
 
 			<p class="modal-desc">

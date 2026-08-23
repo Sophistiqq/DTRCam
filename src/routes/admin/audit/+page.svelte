@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { Eye, X } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -70,7 +71,7 @@
 						<td class="font-mono text-sm">{log.entity}</td>
 						<td>
 							<button class="btn-detail" onclick={() => (selectedDetail = log)}>
-								🔍 View JSON
+								<Eye size={13} class="inline-icon" /> View JSON
 							</button>
 						</td>
 					</tr>
@@ -86,7 +87,7 @@
 		<div class="modal-card">
 			<div class="modal-header">
 				<h3>Audit Detail — {selectedDetail.action}</h3>
-				<button class="btn-close" onclick={() => (selectedDetail = null)}>✕</button>
+				<button class="btn-close" onclick={() => (selectedDetail = null)}><X size={18} /></button>
 			</div>
 
 			<pre class="json-box">{JSON.stringify(selectedDetail, null, 2)}</pre>
