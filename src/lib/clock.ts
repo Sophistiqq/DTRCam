@@ -6,12 +6,20 @@
 
 interface ClockSyncData {
 	server_time: number; // Server timestamp in ms
+	device_time_at_sync: number; // Date.now() at sync
+	offset: number; // server_time - device_time_at_sync
+	session_id: string; // Session identifier
 	monotonic_start: number; // performance.now() at sync
 	synced_at: number; // Date.now() when sync happened
 }
 
 const STORAGE_KEY = 'dtrcam_trusted_clock';
+const LAST_TRUSTED_KEY = 'dtrcam_last_known_trusted_time';
+const SESSION_ID = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+
 let _lastSync: ClockSyncData | null = null;
+let _sessionBaseEpoch: number | null = null;
+let _sessionMonotonicStart = typeof performance !== 'undefined' ? performance.now() : 0;
 let _syncing = false;
 let _initListeners = false;
 
@@ -24,6 +32,26 @@ function loadStoredSync(): ClockSyncData | null {
 	} catch {
 		return null;
 	}
+}
+
+function getLastKnownTrustedTime(): number {
+	if (typeof window === 'undefined') return 0;
+	try {
+		const raw = localStorage.getItem(LAST_TRUSTED_KEY);
+		return raw ? parseInt(raw, 10) || 0 : 0;
+	} catch {
+		return 0;
+	}
+}
+
+function updateLastKnownTrustedTime(epochMs: number) {
+	if (typeof window === 'undefined') return;
+	try {
+		const currentMax = getLastKnownTrustedTime();
+		if (epochMs > currentMax) {
+			localStorage.setItem(LAST_TRUSTED_KEY, String(Math.round(epochMs)));
+		}
+	} catch {}
 }
 
 function saveStoredSync(data: ClockSyncData) {
@@ -40,7 +68,7 @@ function saveStoredSync(data: ClockSyncData) {
  * Measures round-trip time and offsets for half of latency.
  */
 export async function syncServerTime(): Promise<ClockSyncData | null> {
-	if (typeof window === 'undefined' || !navigator.onLine || _syncing) {
+	if (typeof window === 'undefined' || _syncing) {
 		return _lastSync || loadStoredSync();
 	}
 
@@ -48,10 +76,15 @@ export async function syncServerTime(): Promise<ClockSyncData | null> {
 	const t0 = performance.now();
 
 	try {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 6000);
+
 		const response = await fetch('/api/time', {
 			cache: 'no-store',
-			headers: { 'Cache-Control': 'no-cache' }
+			headers: { 'Cache-Control': 'no-cache' },
+			signal: controller.signal
 		});
+		clearTimeout(timeoutId);
 
 		if (!response.ok) throw new Error('Time sync failed');
 
@@ -61,17 +94,25 @@ export async function syncServerTime(): Promise<ClockSyncData | null> {
 
 		// Approximate server time at monotonic t1: server_time + rtt / 2
 		const adjustedServerTime = server_time + Math.round(rtt / 2);
+		const deviceNow = Date.now();
 
 		_lastSync = {
 			server_time: adjustedServerTime,
+			device_time_at_sync: deviceNow,
+			offset: adjustedServerTime - deviceNow,
+			session_id: SESSION_ID,
 			monotonic_start: t1,
-			synced_at: Date.now()
+			synced_at: deviceNow
 		};
 
+		_sessionMonotonicStart = t1;
+		_sessionBaseEpoch = adjustedServerTime;
+
 		saveStoredSync(_lastSync);
+		updateLastKnownTrustedTime(adjustedServerTime);
 		return _lastSync;
 	} catch (err) {
-		console.warn('[Clock] Time sync failed, using fallback:', err);
+		console.warn('[Clock] Time sync attempt:', err);
 		return _lastSync || loadStoredSync();
 	} finally {
 		_syncing = false;
@@ -98,16 +139,16 @@ export function initTrustedClock() {
 		}
 	});
 
-	// Sync every 5 minutes when active
+	// Sync every 3 minutes when active
 	setInterval(() => {
 		syncServerTime();
-	}, 5 * 60 * 1000);
+	}, 3 * 60 * 1000);
 }
 
 /**
  * Get the current trusted date & time.
- * Calculates `server_time + (performance.now() - monotonic_start)`.
- * Falls back to device clock if no sync data exists.
+ * Calculates server_time + monotonic elapsed time within the active session.
+ * Prevents clock rollback across page refreshes.
  */
 export function getTrustedTime(): { date: Date; epochMs: number; isTrusted: boolean } {
 	if (typeof window === 'undefined') {
@@ -119,24 +160,42 @@ export function getTrustedTime(): { date: Date; epochMs: number; isTrusted: bool
 		_lastSync = loadStoredSync();
 	}
 
-	if (_lastSync) {
-		const elapsed = performance.now() - _lastSync.monotonic_start;
-		// If elapsed is negative or suspiciously massive (> 30 days without browser restart), clamp
-		if (elapsed >= 0 && elapsed < 30 * 24 * 60 * 60 * 1000) {
-			const trustedEpoch = _lastSync.server_time + elapsed;
-			return {
-				date: new Date(trustedEpoch),
-				epochMs: Math.round(trustedEpoch),
-				isTrusted: true
-			};
+	// Calculate session base epoch if not yet established
+	if (_sessionBaseEpoch === null) {
+		_sessionMonotonicStart = performance.now();
+		if (_lastSync) {
+			if (_lastSync.session_id === SESSION_ID && _lastSync.monotonic_start <= _sessionMonotonicStart) {
+				_sessionBaseEpoch = _lastSync.server_time + (_sessionMonotonicStart - _lastSync.monotonic_start);
+			} else {
+				// Across page reloads: compute using offset or server_time
+				const offset = _lastSync.offset ?? (_lastSync.server_time - (_lastSync.synced_at || _lastSync.device_time_at_sync || Date.now()));
+				_sessionBaseEpoch = Date.now() + offset;
+			}
+		} else {
+			_sessionBaseEpoch = Date.now();
+		}
+
+		// Prevent clock backward tamper across reloads
+		const lastKnown = getLastKnownTrustedTime();
+		if (lastKnown && _sessionBaseEpoch < lastKnown) {
+			_sessionBaseEpoch = lastKnown + 1000;
 		}
 	}
 
-	const fallback = Date.now();
+	const elapsedInSession = Math.max(0, performance.now() - _sessionMonotonicStart);
+	let currentTrustedEpoch = _sessionBaseEpoch + elapsedInSession;
+
+	const lastKnown = getLastKnownTrustedTime();
+	if (lastKnown && currentTrustedEpoch < lastKnown) {
+		currentTrustedEpoch = lastKnown + 1000;
+	}
+
+	updateLastKnownTrustedTime(currentTrustedEpoch);
+
 	return {
-		date: new Date(fallback),
-		epochMs: fallback,
-		isTrusted: false
+		date: new Date(currentTrustedEpoch),
+		epochMs: Math.round(currentTrustedEpoch),
+		isTrusted: !!_lastSync
 	};
 }
 

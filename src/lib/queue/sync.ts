@@ -92,58 +92,72 @@ export function initSyncEngine() {
  * Upload a single queued punch item to the server
  */
 async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
-	const formData = new FormData();
-	formData.append('photo', item.photo_blob, `punch_${item.id}.jpg`);
+	try {
+		const formData = new FormData();
+		formData.append('photo', item.photo_blob, `punch_${item.id}.jpg`);
 
-	const metadata = {
-		id: item.id,
-		employee_id: item.employee_id,
-		work_date: item.work_date,
-		punch_type: item.punch_type,
-		captured_at: item.captured_at,
-		trusted_clock_epoch: item.trusted_clock_epoch,
-		lat: item.lat,
-		lng: item.lng,
-		gps_accuracy_m: item.gps_accuracy_m,
-		location_source: item.location_source,
-		location_text: item.location_text,
-		payload_sha256: item.payload_sha256,
-		prev_hash: item.prev_hash
-	};
+		const metadata = {
+			id: item.id,
+			employee_id: item.employee_id,
+			work_date: item.work_date,
+			punch_type: item.punch_type,
+			captured_at: item.captured_at,
+			trusted_clock_epoch: item.trusted_clock_epoch,
+			lat: item.lat,
+			lng: item.lng,
+			gps_accuracy_m: item.gps_accuracy_m,
+			location_source: item.location_source,
+			location_text: item.location_text,
+			payload_sha256: item.payload_sha256,
+			prev_hash: item.prev_hash
+		};
 
-	formData.append('metadata', JSON.stringify(metadata));
+		formData.append('metadata', JSON.stringify(metadata));
 
-	const response = await fetch('/api/punch/ingest', {
-		method: 'POST',
-		body: formData
-	});
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-	if (response.ok) {
-		const result = await response.json();
-		console.log('[Sync] Punch ingested successfully:', result);
+		const response = await fetch('/api/punch/ingest', {
+			method: 'POST',
+			body: formData,
+			signal: controller.signal
+		});
+		clearTimeout(timeoutId);
 
-		// Remove from IndexedDB
-		await removeQueuedPunch(item.id);
+		if (response.ok) {
+			const result = await response.json();
+			console.log('[Sync] Punch ingested successfully:', result);
 
-		// Update local history synced flag
-		const localPunches = getLocalPunches();
-		const match = localPunches.find((p) => p.id === item.id);
-		if (match) {
-			match.synced = true;
-			saveLocalPunch(match);
+			// Remove from IndexedDB
+			await removeQueuedPunch(item.id);
+
+			// Update local history synced flag
+			const localPunches = getLocalPunches();
+			const match = localPunches.find((p) => p.id === item.id);
+			if (match) {
+				match.synced = true;
+				saveLocalPunch(match);
+			}
+
+			return true;
+		} else {
+			let errMsg = `Server returned status ${response.status}`;
+			try {
+				const errJson = await response.json();
+				if (errJson.error) errMsg = errJson.error;
+			} catch {
+				// Fallback
+			}
+
+			console.warn(`[Sync] Ingest failed for punch ${item.id}:`, errMsg);
+			await recordPunchAttemptError(item.id, errMsg);
+			_lastError = errMsg;
+			return false;
 		}
-
-		return true;
-	} else {
-		let errMsg = `Server returned status ${response.status}`;
-		try {
-			const errJson = await response.json();
-			if (errJson.error) errMsg = errJson.error;
-		} catch {
-			// Fallback
-		}
-
-		console.warn(`[Sync] Ingest failed for punch ${item.id}:`, errMsg);
+	} catch (err: unknown) {
+		const error = err as { message?: string };
+		const errMsg = error.message || 'Network connection failed during punch sync';
+		console.warn(`[Sync] Network failure uploading punch ${item.id}:`, errMsg);
 		await recordPunchAttemptError(item.id, errMsg);
 		_lastError = errMsg;
 		return false;
@@ -153,8 +167,13 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 /**
  * Trigger immediate execution of offline sync
  */
-export async function triggerSync(): Promise<void> {
-	if (typeof window === 'undefined' || _isSyncing || !navigator.onLine) {
+export async function triggerSync(force = false): Promise<void> {
+	if (typeof window === 'undefined' || _isSyncing) {
+		return;
+	}
+
+	// For background automatic ticks, skip if clearly offline; for explicit clicks (force=true), always attempt
+	if (!force && typeof navigator !== 'undefined' && navigator.onLine === false) {
 		return;
 	}
 

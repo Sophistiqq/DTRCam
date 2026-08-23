@@ -109,7 +109,8 @@
 	async function refreshRecords() {
 		const all = getLocalPunches();
 		const currentWorkDate = formatWorkDate(getTrustedTime().date);
-		const filtered = all.filter((p) => p.work_date === currentWorkDate);
+		// Show today's punches as well as any pending unsynced punches
+		const filtered = all.filter((p) => p.work_date === currentWorkDate || !p.synced);
 
 		// Enrich any records that have photos in IndexedDB cache
 		const enriched = await Promise.all(
@@ -225,7 +226,7 @@
 			<button
 				class="btn-sync-action"
 				disabled={syncStatus.isSyncing}
-				onclick={() => triggerSync()}
+				onclick={() => triggerSync(true)}
 			>
 				{syncStatus.isSyncing ? 'Syncing' : 'Sync Now'}
 			</button>

@@ -25,13 +25,17 @@ export async function login(empNo: string, password: string): Promise<string | n
 export async function logout(): Promise<void> {
 	if (typeof window !== 'undefined') {
 		try {
-			clearLocalHistory();
 			localStorage.removeItem('dtrcam_cached_profile');
 		} catch {}
 	}
-	const supabase = getSupabaseClient();
-	await supabase.auth.signOut();
-	goto('/login');
+	try {
+		const supabase = getSupabaseClient();
+		await supabase.auth.signOut();
+	} catch (err) {
+		console.warn('[Auth] SignOut error (offline or network failure):', err);
+	} finally {
+		goto('/login');
+	}
 }
 
 /** Get current session (null if not logged in) */
