@@ -22,6 +22,7 @@ let _sessionBaseEpoch: number | null = null;
 let _sessionMonotonicStart = typeof performance !== 'undefined' ? performance.now() : 0;
 let _syncing = false;
 let _initListeners = false;
+let _hasFreshSync = false;
 
 function loadStoredSync(): ClockSyncData | null {
 	if (typeof window === 'undefined') return null;
@@ -110,6 +111,7 @@ export async function syncServerTime(): Promise<ClockSyncData | null> {
 
 		saveStoredSync(_lastSync);
 		updateLastKnownTrustedTime(adjustedServerTime);
+		_hasFreshSync = true;
 		return _lastSync;
 	} catch (err) {
 		console.warn('[Clock] Time sync attempt:', err);
@@ -243,6 +245,11 @@ export function getClockSyncState(): ClockSyncState {
 
 	const syncData = _lastSync || loadStoredSync();
 	if (!syncData) {
+		return { isSynced: false, offsetMs: 0, driftSeconds: 0, isDrifted: false, driftDescription: null };
+	}
+
+	// Don't report drift based on stale localStorage data — wait for a fresh sync this session
+	if (!_hasFreshSync) {
 		return { isSynced: false, offsetMs: 0, driftSeconds: 0, isDrifted: false, driftDescription: null };
 	}
 
