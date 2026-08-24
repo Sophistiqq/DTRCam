@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '$lib/types/database';
+import type { Database, Json } from '$lib/types/database';
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import { PUBLIC_SUPABASE_URL } from '$env/static/public';
@@ -38,7 +38,7 @@ export async function writeAuditLog(
 	action: string,
 	entity: string,
 	entity_id: string | null,
-	detail: Record<string, unknown> = {}
+	detail: Json = {}
 ) {
 	await supabaseAdmin.from('audit_log').insert({ actor, action, entity, entity_id, detail });
 }

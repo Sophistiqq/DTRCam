@@ -935,12 +935,6 @@
 		flex: 1;
 	}
 
-	.punch-time-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
 	.pill-quarantined {
 		font-size: 0.68rem;
 		font-weight: 800;

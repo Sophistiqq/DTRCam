@@ -4,7 +4,7 @@ export type PunchStatus = 'accepted' | 'late_sync' | 'quarantined' | 'superseded
 export type LocationSource = 'gps' | 'manual';
 export type SummaryStatus = 'complete' | 'missing_out' | 'absent';
 
-export interface Profile {
+export type Profile =  {
 	id: string;
 	employee_no: string;
 	full_name: string;
@@ -14,7 +14,7 @@ export interface Profile {
 	created_at: string;
 }
 
-export interface Punch {
+export type Punch =  {
 	id: string;
 	employee_id: string;
 	work_date: string;
@@ -40,7 +40,7 @@ export interface Punch {
 	created_at: string;
 }
 
-export interface Device {
+export type Device =  {
 	id: string;
 	employee_id: string;
 	model: string | null;
@@ -49,7 +49,7 @@ export interface Device {
 	clock_offset_ms: number;
 }
 
-export interface ApiKey {
+export type ApiKey =  {
 	id: string;
 	label: string;
 	key_hash: string;
@@ -58,7 +58,7 @@ export interface ApiKey {
 	created_at: string;
 }
 
-export interface AuditLog {
+export type AuditLog =  {
 	id: string;
 	actor: string | null;
 	action: string;
@@ -68,7 +68,7 @@ export interface AuditLog {
 	at: string;
 }
 
-export interface DailySummary {
+export type DailySummary =  {
 	employee_id: string;
 	work_date: string;
 	first_in_at: string | null;
@@ -88,7 +88,7 @@ export type Json =
 	| Json[];
 
 // Supabase Database type shape for createClient<Database>
-export interface Database {
+export type Database =  {
 	public: {
 		Tables: {
 			profiles: {
@@ -235,7 +235,15 @@ export interface Database {
 					detail?: Json;
 					at?: string;
 				};
-				Relationships: [];
+				Relationships: [
+					{
+						foreignKeyName: 'audit_log_actor_fkey';
+						columns: ['actor'];
+						isOneToOne: false;
+						referencedRelation: 'profiles';
+						referencedColumns: ['id'];
+					}
+				];
 			};
 			daily_summary: {
 				Row: DailySummary;
@@ -259,15 +267,19 @@ export interface Database {
 					status?: SummaryStatus;
 					built_at?: string;
 				};
-				Relationships: [];
+				Relationships: [
+					{
+						foreignKeyName: 'daily_summary_employee_id_fkey';
+						columns: ['employee_id'];
+						isOneToOne: false;
+						referencedRelation: 'profiles';
+						referencedColumns: ['id'];
+					}
+				];
 			};
 		};
-		Views: {
-			[_ in never]: never;
-		};
-		Functions: {
-			[_ in never]: never;
-		};
+		Views: Record<string, never>;
+		Functions: Record<string, never>;
 		Enums: {
 			role: Role;
 			punch_type: PunchType;
@@ -275,8 +287,6 @@ export interface Database {
 			location_source: LocationSource;
 			summary_status: SummaryStatus;
 		};
-		CompositeTypes: {
-			[_ in never]: never;
-		};
+		CompositeTypes: Record<string, never>;
 	};
 }

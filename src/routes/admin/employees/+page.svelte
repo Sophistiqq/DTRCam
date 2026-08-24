@@ -132,7 +132,6 @@
 						type="text"
 						placeholder="e.g. 2522"
 						required
-						autofocus
 					/>
 				</div>
 
@@ -212,7 +211,6 @@
 						bind:value={newPasswordInput}
 						placeholder="e.g. tempPass2026!"
 						required
-						autofocus
 					/>
 				</div>
 

@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import type { Json } from '$lib/types/database';
 import { supabaseAdmin, writeAuditLog } from '$lib/server/supabase';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -92,7 +93,7 @@ export const actions: Actions = {
 			.single();
 
 		const updatedFlags = {
-			...(punch?.anomaly_flags || {}),
+			...((punch?.anomaly_flags as Record<string, unknown>) || {}),
 			force_accepted_by: locals.profile?.full_name,
 			force_accepted_at: new Date().toISOString(),
 			admin_note: note || 'Manually accepted by HR administrator'

@@ -135,7 +135,6 @@
 						type="text"
 						placeholder="e.g. Visual FoxPro Payroll Sync - Head Office"
 						required
-						autofocus
 					/>
 				</div>
 

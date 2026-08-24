@@ -2,7 +2,7 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import crypto from 'node:crypto';
 import { supabaseAdmin } from '$lib/server/supabase';
 import { debugEmit, debugLog } from '$lib/server/debug';
-import type { LocationSource, PunchStatus, PunchType } from '$lib/types/database';
+import type { Json, LocationSource, PunchStatus, PunchType } from '$lib/types/database';
 
 // Tolerances
 const FUTURE_TOLERANCE_MS = (parseInt(process.env.FUTURE_TOLERANCE_MINUTES || '2', 10) || 2) * 60 * 1000;
@@ -60,7 +60,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		let status: PunchStatus = 'accepted';
 		let quarantineReason: string | null = null;
-		const anomalyFlags: Record<string, unknown> = {};
+		const anomalyFlags: Json = {};
 
 		// Validation A: Hash Check
 		if (computedSha256.toLowerCase() !== metadata.payload_sha256.toLowerCase()) {

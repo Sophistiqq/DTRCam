@@ -11,7 +11,6 @@ export default defineConfig({
 	plugins: [
 		basicSsl(),
 		sentrySvelteKit({
-			autoInjectServerSentry: 'top-level-import',
 			sourceMapsUploadOptions: {
 				org: process.env.SENTRY_ORG,
 				project: process.env.SENTRY_PROJECT,

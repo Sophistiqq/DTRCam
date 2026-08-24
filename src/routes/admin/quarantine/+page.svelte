@@ -162,7 +162,6 @@
 						bind:value={adminNote}
 						placeholder={modalMode === 'accept' ? 'e.g. Employee called in, verified offline site' : 'e.g. Test upload / corrupted time'}
 						required
-						autofocus
 					/>
 				</div>
 

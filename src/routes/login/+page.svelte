@@ -52,7 +52,6 @@
 					inputmode="numeric"
 					autocomplete="username"
 					required
-					autofocus
 					disabled={submitting}
 					placeholder="e.g. 1001"
 				/>

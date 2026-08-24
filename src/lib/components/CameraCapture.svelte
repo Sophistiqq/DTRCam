@@ -570,7 +570,6 @@
 					bind:value={manualLocationInput}
 					placeholder="e.g. Makati Branch, 2nd Floor"
 					class="manual-input"
-					autofocus
 				/>
 
 				<div class="modal-actions">
