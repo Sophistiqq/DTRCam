@@ -106,6 +106,7 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 			punch_type: item.punch_type,
 			captured_at: item.captured_at,
 			trusted_clock_epoch: item.trusted_clock_epoch,
+			timezone_offset_min: item.timezone_offset_min,
 			clock_offset_ms: clockState.offsetMs,
 			lat: item.lat,
 			lng: item.lng,

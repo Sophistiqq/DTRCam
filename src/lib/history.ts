@@ -64,6 +64,27 @@ export function getTodayPunches(workDate: string): LocalPunchRecord[] {
 	return getLocalPunches().filter((p) => p.work_date === workDate);
 }
 
+/**
+ * Find the currently OPEN time-in session (a TIME IN that has not been closed
+ * by a matching TIME OUT on the same work date), across all recorded days.
+ * Duplicates (device-only backups) and superseded records are ignored.
+ * Returns null when every session is properly closed.
+ */
+export function findOpenTimeIn(records: LocalPunchRecord[]): LocalPunchRecord | null {
+	const active = records.filter((r) => !r.duplicate && r.status !== 'superseded');
+	active.sort((a, b) => new Date(a.captured_at).getTime() - new Date(b.captured_at).getTime());
+
+	let open: LocalPunchRecord | null = null;
+	for (const r of active) {
+		if (r.punch_type === 'in') {
+			open = r;
+		} else if (open && r.work_date === open.work_date) {
+			open = null;
+		}
+	}
+	return open;
+}
+
 const ACTIVE_EMP_KEY = 'dtrcam_active_emp_id';
 
 export function clearLocalHistory(): void {

@@ -13,6 +13,8 @@ export interface QueuedPunchItem {
 	punch_type: PunchType;
 	captured_at: string; // ISO string from trusted clock
 	trusted_clock_epoch: number;
+	/** Device timezone offset at capture (minutes east of UTC); absent on legacy queued items */
+	timezone_offset_min?: number;
 	lat: number | null;
 	lng: number | null;
 	gps_accuracy_m: number | null;

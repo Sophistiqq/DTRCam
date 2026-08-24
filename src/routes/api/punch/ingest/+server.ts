@@ -16,6 +16,8 @@ interface IngestMetadata {
 	punch_type: PunchType;
 	captured_at: string;
 	trusted_clock_epoch?: number;
+	/** Device timezone offset at capture (minutes east of UTC); absent on legacy clients */
+	timezone_offset_min?: number;
 	clock_offset_ms?: number | null;
 	lat?: number | null;
 	lng?: number | null;
@@ -110,6 +112,35 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			anomalyFlags.manual_location = true;
 		} else {
 			return json({ error: 'Invalid location source' }, { status: 400 });
+		}
+
+		// Validation F: Work-date integrity / overnight time-out detection.
+		// The client logs a TIME OUT under the work date of its TIME IN, so an
+		// overnight shift (IN Mon 8:30 AM → OUT Tue 10:00 AM) legitimately carries
+		// yesterday's work date with today's capture time. Such cross-date punches
+		// are accepted but QUARANTINED for admin review.
+		if (typeof metadata.timezone_offset_min === 'number') {
+			const local = new Date(captureEpoch + metadata.timezone_offset_min * 60 * 1000);
+			const expectedWorkDate = [
+				local.getUTCFullYear(),
+				String(local.getUTCMonth() + 1).padStart(2, '0'),
+				String(local.getUTCDate()).padStart(2, '0')
+			].join('-');
+
+			if (metadata.work_date !== expectedWorkDate) {
+				anomalyFlags.work_date_mismatch = true;
+
+				if (metadata.punch_type === 'out' && metadata.work_date < expectedWorkDate) {
+					anomalyFlags.overnight_out = true;
+					if (status !== 'quarantined') {
+						status = 'quarantined';
+						quarantineReason = `Overnight TIME OUT: captured on ${expectedWorkDate} but logged under work date ${metadata.work_date} — pending admin review`;
+					}
+				} else if (status !== 'quarantined') {
+					status = 'quarantined';
+					quarantineReason = `Captured on ${expectedWorkDate} but logged under work date ${metadata.work_date}`;
+				}
+			}
 		}
 
 		// Validation D: Missing TIME IN check on TIME OUT

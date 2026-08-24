@@ -11,12 +11,18 @@
 		type ClockSyncState
 	} from '$lib/clock';
 	import { formatCoordinates, getGoogleMapsUrl } from '$lib/gps';
-	import { getLocalPunches, saveLocalPunch, refreshRecordsFromServer, type LocalPunchRecord } from '$lib/history';
+	import {
+		getLocalPunches,
+		saveLocalPunch,
+		refreshRecordsFromServer,
+		findOpenTimeIn,
+		type LocalPunchRecord
+	} from '$lib/history';
 	import { enqueuePunch, getLatestQueuedHashForEmployee } from '$lib/queue/db';
 	import { initSyncEngine, triggerSync, subscribeSyncStatus, type SyncStatus } from '$lib/queue/sync';
 	import type { PunchType } from '$lib/types/database';
 	import {
-		CheckCircle,
+		CircleCheckBig,
 		RefreshCw,
 		Clock,
 		LogIn,
@@ -28,7 +34,7 @@
 		Camera,
 		ExternalLink,
 		ArrowLeft,
-		AlertTriangle,
+		TriangleAlert,
 		ShieldAlert
 	} from 'lucide-svelte';
 
@@ -38,6 +44,7 @@
 
 	let activePunchType = $state<PunchType | null>(null);
 	let todayRecords = $state<LocalPunchRecord[]>([]);
+	let allRecords = $state<LocalPunchRecord[]>([]);
 	let selectedRecord = $state<LocalPunchRecord | null>(null);
 	let selectedRecordPhoto = $state<string | null>(null);
 	let isLoadingPhoto = $state(false);
@@ -55,7 +62,7 @@
 	let unsubscribeSync: (() => void) | null = null;
 	const todayWorkDate = $derived(formatWorkDate(getTrustedTime().date));
 
-	// ── Duplicate / Button-lock logic ────────────────────────────────────────
+	// ── Session / Button-lock logic ──────────────────────────────────────────
 	// Duplicates are device-only backups rejected by the server (409) —
 	// hidden from the records list, but still counted to lock the buttons
 	const isDuplicate = (r: LocalPunchRecord) => !!r.duplicate;
@@ -63,17 +70,20 @@
 	// Visible records exclude device-only duplicates
 	const visibleTodayRecords = $derived(todayRecords.filter((r) => !isDuplicate(r)));
 
-	// Whether user already has a cloud-synced TIME IN today
-	const hasCloudTimedIn  = $derived(todayRecords.some(r => r.punch_type === 'in'  && r.synced && !isDuplicate(r)));
-	const hasCloudTimedOut = $derived(todayRecords.some(r => r.punch_type === 'out' && r.synced && !isDuplicate(r)));
+	// Open session = a TIME IN (from any day) that has no matching TIME OUT yet.
+	// Enforced sequencing: TIME IN is locked while a shift is open, TIME OUT is
+	// locked until an open shift exists — forcing proper time out discipline.
+	const openTimeIn = $derived(findOpenTimeIn(allRecords));
+	const openIsToday = $derived(openTimeIn?.work_date === todayWorkDate);
+	const todayHasOut = $derived(todayRecords.some((r) => r.punch_type === 'out' && !isDuplicate(r)));
 
-	// Count of unsynced/duplicate TIME IN records (the "peace of mind" backup)
-	const duplicateInCount  = $derived(todayRecords.filter(r => r.punch_type === 'in'  && isDuplicate(r)).length);
-	const duplicateOutCount = $derived(todayRecords.filter(r => r.punch_type === 'out' && isDuplicate(r)).length);
+	const timeInDisabled  = $derived(openTimeIn !== null);
+	const timeOutDisabled = $derived(openTimeIn === null);
 
-	// Disable TIME IN when: cloud record exists AND already have 1 duplicate backup
-	const timeInDisabled  = $derived(hasCloudTimedIn  && duplicateInCount  >= 1);
-	const timeOutDisabled = $derived(hasCloudTimedOut && duplicateOutCount >= 1);
+	// Records are displayed for the current work date plus the work date of the
+	// most recent punch — so overnight TIME OUTs (logged under yesterday's date)
+	// stay visible until the next activity.
+	const displayContextDate = $derived(allRecords[0]?.work_date ?? todayWorkDate);
 
 	// Only non-duplicate quarantined records are "real" quarantines to warn about
 	const quarantinedRecords = $derived(todayRecords.filter(r => r.status === 'quarantined' && !isDuplicate(r)));
@@ -153,9 +163,15 @@
 
 	async function refreshRecords() {
 		const all = getLocalPunches();
+		all.sort((a, b) => new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime());
+		allRecords = all;
+
 		const currentWorkDate = formatWorkDate(getTrustedTime().date);
-		// Show today's punches as well as any pending unsynced punches
-		const filtered = all.filter((p) => p.work_date === currentWorkDate || !p.synced);
+		// Show today's punches, pending unsynced punches, and the most recent
+		// session's work date (covers overnight TIME OUTs logged under yesterday)
+		const filtered = all.filter(
+			(p) => p.work_date === currentWorkDate || p.work_date === displayContextDate || !p.synced
+		);
 
 		// Enrich any records that have photos in IndexedDB cache
 		const enriched = await Promise.all(
@@ -197,6 +213,19 @@
 		const employeeId = profile?.id || 'anonymous';
 		const prevHash = await getLatestQueuedHashForEmployee(employeeId);
 
+		const punchType = activePunchType || 'in';
+
+		// A TIME OUT always closes the open session: it inherits the work date of
+		// its TIME IN. Overnight overtime (e.g. IN Mon 8:30 AM → OUT Tue 10:00 AM)
+		// is logged under Monday's date with Tuesday's actual capture time; the
+		// server quarantines cross-date punches for admin review.
+		const workDate =
+			punchType === 'out' ? openTimeIn?.work_date ?? todayWorkDate : todayWorkDate;
+
+		// Device timezone offset at capture (minutes east of UTC) so the server
+		// can verify the work date against the capture timestamp.
+		const timezoneOffsetMin = -new Date(payload.captured_at).getTimezoneOffset();
+
 		// 1. Cache full-resolution photo in IndexedDB (no 5MB storage limit)
 		await cachePunchPhoto(recordId, payload.blob, payload.dataUrl);
 
@@ -204,10 +233,11 @@
 		await enqueuePunch({
 			id: recordId,
 			employee_id: employeeId,
-			work_date: todayWorkDate,
-			punch_type: activePunchType || 'in',
+			work_date: workDate,
+			punch_type: punchType,
 			captured_at: payload.captured_at,
 			trusted_clock_epoch: payload.trusted_clock_epoch,
+			timezone_offset_min: timezoneOffsetMin,
 			lat: payload.lat,
 			lng: payload.lng,
 			gps_accuracy_m: payload.gps_accuracy_m,
@@ -221,8 +251,8 @@
 		// 3. Save lightweight record in local storage (instant UI, no quota overflow)
 		const record: LocalPunchRecord = {
 			id: recordId,
-			work_date: todayWorkDate,
-			punch_type: activePunchType || 'in',
+			work_date: workDate,
+			punch_type: punchType,
 			captured_at: payload.captured_at,
 			trusted_clock_epoch: payload.trusted_clock_epoch,
 			lat: payload.lat,
@@ -245,7 +275,11 @@
 		// 5. Save photo to device gallery
 		await saveToGallery(payload.blob, record.punch_type, record.captured_at);
 
-		successToast = `${record.punch_type === 'in' ? 'TIME IN' : 'TIME OUT'} recorded! Attendance record saved locally & queued for sync.`;
+		if (punchType === 'out' && workDate !== todayWorkDate) {
+			successToast = `Overnight TIME OUT recorded for ${workDate} — queued for admin review.`;
+		} else {
+			successToast = `${punchType === 'in' ? 'TIME IN' : 'TIME OUT'} recorded! Attendance record saved locally & queued for sync.`;
+		}
 		setTimeout(() => { successToast = null; }, 4500);
 	}
 
@@ -284,7 +318,7 @@
 <div class="punch-page">
 	{#if successToast}
 		<div class="toast-success" role="status">
-			<CheckCircle size={18} />
+			<CircleCheckBig size={18} />
 			<span>{successToast}</span>
 		</div>
 	{/if}
@@ -292,7 +326,7 @@
 	<!-- Clock Desync Warning Banner -->
 	{#if clockState.isDrifted}
 		<div class="alert-banner clock-skew-banner" role="alert">
-			<AlertTriangle size={20} class="alert-icon" />
+			<TriangleAlert size={20} class="alert-icon" />
 			<div class="alert-content">
 				<strong class="alert-title">Phone Clock Out of Sync</strong>
 				<p class="alert-msg">
@@ -349,7 +383,9 @@
 			<span class="punch-icon"><LogIn size={28} /></span>
 			<span class="punch-label">TIME IN</span>
 			<span class="punch-caption">
-				{#if timeInDisabled}Already timed in — backup saved{:else}Record arrival selfie{/if}
+				{#if timeInDisabled}
+					{#if openIsToday}Already timed in — backup saved{:else}Previous shift still open — time out first{/if}
+				{:else}Record arrival selfie{/if}
 			</span>
 		</button>
 
@@ -362,7 +398,9 @@
 			<span class="punch-icon"><LogOut size={28} /></span>
 			<span class="punch-label">TIME OUT</span>
 			<span class="punch-caption">
-				{#if timeOutDisabled}Already timed out — backup saved{:else}Record departure selfie{/if}
+				{#if timeOutDisabled}
+					{#if todayHasOut}Already timed out — backup saved{:else}Time In required first{/if}
+				{:else if !openIsToday && openTimeIn}Close {openTimeIn.work_date} shift{:else}Record departure selfie{/if}
 			</span>
 		</button>
 	</section>
@@ -410,6 +448,11 @@
 								hour12: true
 							})}
 						</span>
+						{#if record.work_date !== todayWorkDate}
+							<span class="wd-chip" title="Logged under work date {record.work_date}">
+								<Clock size={10} class="inline-icon" /> {record.work_date}
+							</span>
+						{/if}
 						<span class="loc-sub">
 							{#if record.location_source === 'gps' && record.lat && record.lng}
 								<MapPin size={12} class="inline-icon" /> {formatCoordinates(record.lat, record.lng, record.gps_accuracy_m)}
@@ -420,7 +463,7 @@
 						{#if record.status === 'quarantined'}
 							<div class="quarantine-pill-wrap">
 								<span class="pill-quarantined" title={record.quarantine_reason || 'Quarantined for review'}>
-									<AlertTriangle size={11} class="inline-icon" /> QUARANTINED
+									<TriangleAlert size={11} class="inline-icon" /> QUARANTINED
 								</span>
 							</div>
 						{/if}
@@ -496,7 +539,7 @@
 				<span class="info-label">Verification Status</span>
 				{#if selectedRecord.status === 'quarantined'}
 					<span class="info-value status-quarantined">
-						<AlertTriangle size={14} class="inline-icon" /> Quarantined (Pending Review)
+						<TriangleAlert size={14} class="inline-icon" /> Quarantined (Pending Review)
 					</span>
 				{:else if selectedRecord.status === 'late_sync'}
 					<span class="info-value status-late">
@@ -504,7 +547,7 @@
 					</span>
 				{:else}
 					<span class="info-value status-accepted">
-						<CheckCircle size={14} class="inline-icon" /> Verified & Accepted
+						<CircleCheckBig size={14} class="inline-icon" /> Verified & Accepted
 					</span>
 				{/if}
 			</div>
@@ -520,7 +563,7 @@
 				<span class="info-label">Sync Status</span>
 				<span class="info-value sync-value" class:synced={selectedRecord.synced}>
 					{#if selectedRecord.synced}
-						<CheckCircle size={14} class="inline-icon" /> Synced to Server
+						<CircleCheckBig size={14} class="inline-icon" /> Synced to Server
 					{:else}
 						<Clock size={14} class="inline-icon" /> Queued on Device
 					{/if}
@@ -921,6 +964,21 @@
 		font-weight: 700;
 		color: #ffffff;
 		font-family: monospace;
+	}
+
+	.wd-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		width: fit-content;
+		font-size: 0.65rem;
+		font-weight: 700;
+		font-family: monospace;
+		padding: 0.1rem 0.4rem;
+		border-radius: 4px;
+		background: rgba(59, 130, 246, 0.15);
+		border: 1px solid rgba(59, 130, 246, 0.45);
+		color: #93c5fd;
 	}
 
 	.synced-badge {
