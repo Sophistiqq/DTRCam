@@ -274,18 +274,21 @@
 		refreshRecords();
 		closeCamera();
 
-		// 4. Attempt immediate sync
-		triggerSync();
-
-		// 5. Save photo to device gallery
-		await saveToGallery(payload.blob, record.punch_type, record.captured_at);
-
+		// 4. Show confirmation immediately so user knows it worked
 		if (punchType === 'out' && workDate !== todayWorkDate) {
 			successToast = `Overnight TIME OUT recorded for ${workDate} — queued for admin review.`;
 		} else {
-			successToast = `${punchType === 'in' ? 'TIME IN' : 'TIME OUT'} recorded! Attendance record saved locally & queued for sync.`;
+			successToast = `${punchType === 'in' ? 'TIME IN' : 'TIME OUT'} recorded! Queued for sync.`;
 		}
 		setTimeout(() => { successToast = null; }, 4500);
+
+		// 5. Attempt immediate sync
+		triggerSync();
+
+		// 6. Save photo to device gallery (non-blocking — don't let failure block the punch)
+		saveToGallery(payload.blob, record.punch_type, record.captured_at).catch((err) => {
+			console.warn('[Punch] Gallery save failed:', err);
+		});
 	}
 
 	/**
