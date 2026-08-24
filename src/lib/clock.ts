@@ -200,28 +200,29 @@ export function getTrustedTime(): { date: Date; epochMs: number; isTrusted: bool
 }
 
 /**
- * Helper to format date in YYYY-MM-DD (calendar work date)
+ * Helper to format date & time for overlay and display: YYYY-MM-DD h:mm:ss AM/PM (Philippine time)
  */
-export function formatWorkDate(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, '0');
-	const d = String(date.getDate()).padStart(2, '0');
-	return `${y}-${m}-${d}`;
+export function formatDateTimeDisplay(date: Date): string {
+	const parts = new Intl.DateTimeFormat('en-PH', {
+		timeZone: 'Asia/Manila',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: 'numeric',
+		minute: '2-digit',
+		second: '2-digit',
+		hour12: true
+	}).formatToParts(date);
+	const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+	return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')} ${get('dayPeriod')}`;
 }
 
 /**
- * Helper to format date & time for overlay and display: YYYY-MM-DD h:mm:ss AM/PM
+ * Helper to format date in YYYY-MM-DD (calendar work date), always in Philippine time
  */
-export function formatDateTimeDisplay(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, '0');
-	const d = String(date.getDate()).padStart(2, '0');
-	const rawH = date.getHours();
-	const ampm = rawH >= 12 ? 'PM' : 'AM';
-	const h = rawH % 12 || 12;
-	const mm = String(date.getMinutes()).padStart(2, '0');
-	const ss = String(date.getSeconds()).padStart(2, '0');
-	return `${y}-${m}-${d} ${h}:${mm}:${ss} ${ampm}`;
+export function formatWorkDate(date: Date): string {
+	const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(date);
+	return d; // en-CA yields YYYY-MM-DD
 }
 
 export interface ClockSyncState {
