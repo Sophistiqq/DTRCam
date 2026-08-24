@@ -6,7 +6,7 @@
 	import { injectExif } from '$lib/camera/exif';
 	import { computeBlobSha256 } from '$lib/crypto';
 	import type { PunchType, LocationSource } from '$lib/types/database';
-	import { X, SwitchCamera, MapPin, MapPinOff, AlertTriangle, Lock, RefreshCw, Camera } from 'lucide-svelte';
+	import { X, SwitchCamera, MapPin, MapPinOff, AlertTriangle, Lock, RefreshCw, Camera, RotateCcw } from 'lucide-svelte';
 
 	interface CapturePayload {
 		blob: Blob;
@@ -65,6 +65,8 @@
 	let manualLocationInput = $state('');
 	// Frame frozen at shutter time while waiting for the manual location entry
 	let pendingFrame: { canvas: HTMLCanvasElement; mirror: boolean } | null = null;
+	// Frame frozen for review before submission
+	let previewFrame = $state<{ canvas: HTMLCanvasElement; mirror: boolean } | null>(null);
 
 	// Live trusted clock ticker & sync state
 	let currentDisplayTime = $state(formatDateTimeDisplay(getTrustedTime().date));
@@ -298,7 +300,7 @@
 	}
 
 	async function takeSnapshot() {
-		if (isCapturing) return;
+		if (isCapturing || previewFrame) return;
 
 		// Hard block: location must be verifiably ON (permission granted + service enabled)
 		if (isBlocked || gpsStatus === 'acquiring') return;
@@ -316,14 +318,7 @@
 		try {
 			const frame = freezeVideoFrame();
 			if (!frame) throw new Error('Could not read camera frame');
-
-			if (gpsStatus === 'ready' && gpsCoords) {
-				await emitPayload(frame.canvas, frame.canvas.width, frame.canvas.height, frame.mirror, null);
-			} else {
-				// Weak signal: photo taken — ask for location AFTER capture
-				pendingFrame = frame;
-				showManualModal = true;
-			}
+			previewFrame = frame;
 		} catch (err) {
 			console.error('[Camera] Capture error:', err);
 			alert('Failed to process punch photo. Please try again.');
@@ -355,12 +350,7 @@
 			ctx.drawImage(img, 0, 0);
 			URL.revokeObjectURL(objectUrl);
 
-			if (gpsStatus === 'ready' && gpsCoords) {
-				await emitPayload(canvas, canvas.width, canvas.height, false, null);
-			} else {
-				pendingFrame = { canvas, mirror: false };
-				showManualModal = true;
-			}
+			previewFrame = { canvas, mirror: false };
 		} catch (err) {
 			console.error('[Camera] File input process error:', err);
 			alert('Failed to process photo.');
@@ -390,6 +380,28 @@
 		pendingFrame = null;
 		showManualModal = false;
 		manualLocationInput = '';
+	}
+
+	function previewRetake() {
+		previewFrame = null;
+	}
+
+	function previewSubmit() {
+		const frame = previewFrame;
+		if (!frame) return;
+		previewFrame = null;
+
+		if (gpsStatus === 'ready' && gpsCoords) {
+			emitPayload(frame.canvas, frame.canvas.width, frame.canvas.height, frame.mirror, null).catch(
+				(err) => {
+					console.error('[Camera] Finalize error:', err);
+					alert('Failed to process punch photo. Please try again.');
+				}
+			);
+		} else {
+			pendingFrame = frame;
+			showManualModal = true;
+		}
 	}
 
 	function gpsPillOnClick() {
@@ -566,6 +578,26 @@
 			{/if}
 		</p>
 	</div>
+
+	<!-- Photo Preview Overlay -->
+	{#if previewFrame}
+		<div class="preview-overlay">
+			<img
+				src={previewFrame.canvas.toDataURL('image/jpeg', 0.9)}
+				alt=""
+				class="preview-img"
+				class:mirrored={previewFrame.mirror}
+			/>
+			<div class="preview-actions">
+				<button class="preview-btn preview-btn-retake" onclick={previewRetake}>
+					<RotateCcw size={18} /> Retake
+				</button>
+				<button class="preview-btn preview-btn-submit" onclick={previewSubmit}>
+					Use Photo
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Post-Capture Manual Location Modal (weak GPS signal only) -->
 	{#if showManualModal}
@@ -1074,6 +1106,57 @@
 	.btn-confirm:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
+	}
+
+	/* Photo Preview Overlay */
+	.preview-overlay {
+		position: absolute;
+		inset: 0;
+		background: #000000;
+		display: flex;
+		flex-direction: column;
+		z-index: 50;
+	}
+
+	.preview-img {
+		flex: 1;
+		width: 100%;
+		object-fit: cover;
+	}
+
+	.preview-img.mirrored {
+		transform: scaleX(-1);
+	}
+
+	.preview-actions {
+		display: flex;
+		gap: 1rem;
+		padding: 1.25rem 1rem 2rem;
+		background: #000000;
+		justify-content: center;
+	}
+
+	.preview-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.85rem 2rem;
+		border-radius: 3px;
+		font-size: 0.95rem;
+		font-weight: 700;
+		cursor: pointer;
+		border: none;
+	}
+
+	.preview-btn-retake {
+		background: #1a1a1a;
+		color: #ffffff;
+		border: 1px solid #333333;
+	}
+
+	.preview-btn-submit {
+		background: #22c55e;
+		color: #000000;
 	}
 </style>
 
