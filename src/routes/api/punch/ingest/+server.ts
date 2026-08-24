@@ -1,6 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import crypto from 'node:crypto';
-import { supabaseAdmin } from '$lib/server/supabase';
+import { supabaseAdmin, writePunchAudit } from '$lib/server/supabase';
 import { debugEmit, debugLog } from '$lib/server/debug';
 import type { Json, LocationSource, PunchStatus, PunchType } from '$lib/types/database';
 
@@ -246,6 +246,37 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			console.error('[DB] Insert punch error:', insertError);
 			return json({ error: `Database insertion error: ${insertError.message}` }, { status: 500 });
 		}
+
+		// 5. Write punch audit trail
+		const { data: profile } = await supabaseAdmin
+			.from('profiles')
+			.select('employee_no, full_name')
+			.eq('id', employeeId)
+			.single();
+
+		writePunchAudit({
+			punch_id: punchId,
+			employee_id: employeeId,
+			employee_no: profile?.employee_no || 'Unknown',
+			employee_name: profile?.full_name || 'Unknown',
+			punch_type: metadata.punch_type,
+			work_date: metadata.work_date,
+			captured_at: metadata.captured_at,
+			received_at: receivedAt.toISOString(),
+			location_source: metadata.location_source,
+			lat: metadata.lat ?? null,
+			lng: metadata.lng ?? null,
+			gps_accuracy_m: metadata.gps_accuracy_m ?? null,
+			location_text: metadata.location_text ?? null,
+			photo_path: photoPath,
+			payload_sha256: computedSha256,
+			prev_hash: prevHash,
+			row_hash: rowHash,
+			status,
+			anomaly_flags: anomalyFlags,
+			quarantine_reason: quarantineReason,
+			source: 'ingest'
+		});
 
 		// 6. Emit Debug Events
 		debugEmit('punch_received', {

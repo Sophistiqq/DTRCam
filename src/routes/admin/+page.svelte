@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { Users, ShieldAlert, Key, ClipboardList } from 'lucide-svelte';
+	import { Users, ShieldAlert, Key, ClipboardList, Clock } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -25,10 +25,23 @@
 				<span class="stat-num">{data.stats.activeApiKeys}</span>
 				<span class="stat-label">Active API Keys</span>
 			</a>
+
+			<a href="/admin/punches" class="stat-box">
+				<span class="stat-num">{data.stats.totalPunches}</span>
+				<span class="stat-label">Total Punches</span>
+			</a>
 		</div>
 	</div>
 
 	<div class="sections-grid">
+		<a href="/admin/punches" class="section-card">
+			<span class="section-icon"><Clock size={28} /></span>
+			<div>
+				<div class="section-name">Punch Records</div>
+				<div class="section-desc">View all attendance punch records with filters</div>
+			</div>
+		</a>
+
 		<a href="/admin/employees" class="section-card">
 			<span class="section-icon"><Users size={28} /></span>
 			<div>

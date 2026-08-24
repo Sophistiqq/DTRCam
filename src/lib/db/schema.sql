@@ -72,19 +72,53 @@ create table if not exists public.daily_summary (
   primary key (employee_id, work_date)
 );
 
--- 8. Indexes
+-- 8. punch_audit (immutable append-only trail)
+create table if not exists public.punch_audit (
+  id uuid primary key default gen_random_uuid(),
+  punch_id uuid not null,
+  employee_id uuid not null references public.profiles(id),
+  employee_no text not null,
+  employee_name text not null,
+  punch_type text not null,
+  work_date date not null,
+  captured_at timestamptz not null,
+  received_at timestamptz not null,
+  location_source text,
+  lat double precision,
+  lng double precision,
+  gps_accuracy_m double precision,
+  location_text text,
+  photo_path text,
+  payload_sha256 text not null,
+  prev_hash text,
+  row_hash text,
+  status text not null,
+  anomaly_flags jsonb not null default '{}'::jsonb,
+  quarantine_reason text,
+  source text not null default 'ingest' check (source in ('ingest', 'admin_force_accept', 'admin_discard')),
+  admin_actor_id uuid references public.profiles(id),
+  admin_note text,
+  created_at timestamptz not null default now()
+);
+
+-- 9. Indexes
 create index if not exists punches_employee_work_date on public.punches (employee_id, work_date, punch_type);
 create index if not exists punches_status on public.punches (status);
 create index if not exists punches_captured_at on public.punches (captured_at);
 create index if not exists audit_log_actor on public.audit_log (actor, at);
 create index if not exists daily_summary_date on public.daily_summary (work_date);
+create index if not exists punch_audit_punch_id on public.punch_audit (punch_id);
+create index if not exists punch_audit_employee on public.punch_audit (employee_id, created_at);
+create index if not exists punch_audit_status on public.punch_audit (status);
+create index if not exists punch_audit_created_at on public.punch_audit (created_at);
 
--- 9. RLS
+-- 10. RLS
 alter table public.profiles enable row level security;
 alter table public.punches enable row level security;
 alter table public.api_keys enable row level security;
 alter table public.audit_log enable row level security;
 alter table public.daily_summary enable row level security;
+alter table public.punch_audit enable row level security;
 
 -- profiles: users can read own row; admins read all
 create policy "profiles_self_read" on public.profiles for select
@@ -104,4 +138,8 @@ create policy "punches_admin_read" on public.punches for select
 create policy "summary_self_read" on public.daily_summary for select
   using (auth.uid() = employee_id);
 create policy "summary_admin_read" on public.daily_summary for select
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+-- punch_audit: admins only
+create policy "punch_audit_admin_read" on public.punch_audit for select
   using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));

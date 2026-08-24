@@ -16,6 +16,7 @@
 
 	<nav class="nav">
 		<a href="/admin" class="nav-link">Dashboard</a>
+		<a href="/admin/punches" class="nav-link">Punch Records</a>
 		<a href="/admin/employees" class="nav-link">Employees</a>
 		<a href="/admin/api-keys" class="nav-link">API Keys</a>
 		<a href="/admin/quarantine" class="nav-link">Quarantine</a>

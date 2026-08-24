@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import crypto from 'node:crypto';
 import type { PageServerLoad, Actions } from './$types';
 import type { Json } from '$lib/types/database';
-import { supabaseAdmin, writeAuditLog } from '$lib/server/supabase';
+import { supabaseAdmin, writeAuditLog, writePunchAudit } from '$lib/server/supabase';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.profile || locals.profile.role !== 'admin') {
@@ -89,7 +89,7 @@ export const actions: Actions = {
 
 		const { data: punch } = await supabaseAdmin
 			.from('punches')
-			.select('anomaly_flags, employee_id, captured_at, punch_type, payload_sha256')
+			.select('anomaly_flags, employee_id, captured_at, punch_type, payload_sha256, work_date, received_at, location_source, lat, lng, gps_accuracy_m, location_text, photo_path, prev_hash, row_hash, status, quarantine_reason')
 			.eq('id', id)
 			.single();
 
@@ -135,6 +135,39 @@ export const actions: Actions = {
 
 		await writeAuditLog(locals.profile?.id || null, 'quarantine_force_accept', 'punch', id, { note });
 
+		// Write punch audit trail for admin action
+		const { data: empProfile } = await supabaseAdmin
+			.from('profiles')
+			.select('employee_no, full_name')
+			.eq('id', punch.employee_id)
+			.single();
+
+		writePunchAudit({
+			punch_id: id,
+			employee_id: punch.employee_id,
+			employee_no: empProfile?.employee_no || 'Unknown',
+			employee_name: empProfile?.full_name || 'Unknown',
+			punch_type: punch.punch_type,
+			work_date: punch.work_date,
+			captured_at: punch.captured_at,
+			received_at: punch.received_at,
+			location_source: punch.location_source,
+			lat: punch.lat,
+			lng: punch.lng,
+			gps_accuracy_m: punch.gps_accuracy_m,
+			location_text: punch.location_text,
+			photo_path: punch.photo_path,
+			payload_sha256: punch.payload_sha256,
+			prev_hash: prevHash,
+			row_hash: rowHash,
+			status: 'accepted',
+			anomaly_flags: updatedFlags,
+			quarantine_reason: punch.quarantine_reason,
+			source: 'admin_force_accept',
+			admin_actor_id: locals.profile?.id || null,
+			admin_note: note || 'Manually accepted by HR administrator'
+		});
+
 		return { success: true };
 	},
 
@@ -144,6 +177,13 @@ export const actions: Actions = {
 		const reason = String(formData.get('reason') ?? '').trim();
 
 		if (!id) return fail(400, { error: 'Missing punch ID' });
+
+		// Fetch punch details before update
+		const { data: punch } = await supabaseAdmin
+			.from('punches')
+			.select('employee_id, punch_type, work_date, captured_at, received_at, location_source, lat, lng, gps_accuracy_m, location_text, photo_path, payload_sha256, prev_hash, row_hash, anomaly_flags, quarantine_reason')
+			.eq('id', id)
+			.single();
 
 		const { error: updateError } = await supabaseAdmin
 			.from('punches')
@@ -158,6 +198,41 @@ export const actions: Actions = {
 		}
 
 		await writeAuditLog(locals.profile?.id || null, 'quarantine_discard', 'punch', id, { reason });
+
+		// Write punch audit trail for admin action
+		if (punch) {
+			const { data: empProfile } = await supabaseAdmin
+				.from('profiles')
+				.select('employee_no, full_name')
+				.eq('id', punch.employee_id)
+				.single();
+
+			writePunchAudit({
+				punch_id: id,
+				employee_id: punch.employee_id,
+				employee_no: empProfile?.employee_no || 'Unknown',
+				employee_name: empProfile?.full_name || 'Unknown',
+				punch_type: punch.punch_type,
+				work_date: punch.work_date,
+				captured_at: punch.captured_at,
+				received_at: punch.received_at,
+				location_source: punch.location_source,
+				lat: punch.lat,
+				lng: punch.lng,
+				gps_accuracy_m: punch.gps_accuracy_m,
+				location_text: punch.location_text,
+				photo_path: punch.photo_path,
+				payload_sha256: punch.payload_sha256,
+				prev_hash: punch.prev_hash,
+				row_hash: punch.row_hash,
+				status: 'superseded',
+				anomaly_flags: punch.anomaly_flags,
+				quarantine_reason: `Discarded by admin: ${reason || 'Invalid record'}`,
+				source: 'admin_discard',
+				admin_actor_id: locals.profile?.id || null,
+				admin_note: reason || 'Invalid record'
+			});
+		}
 
 		return { success: true };
 	}

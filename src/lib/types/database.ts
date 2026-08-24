@@ -58,7 +58,35 @@ export type AuditLog =  {
 	at: string;
 }
 
-export type DailySummary =  {
+export type PunchAudit = {
+	id: string;
+	punch_id: string;
+	employee_id: string;
+	employee_no: string;
+	employee_name: string;
+	punch_type: PunchType;
+	work_date: string;
+	captured_at: string;
+	received_at: string;
+	location_source: LocationSource | null;
+	lat: number | null;
+	lng: number | null;
+	gps_accuracy_m: number | null;
+	location_text: string | null;
+	photo_path: string | null;
+	payload_sha256: string;
+	prev_hash: string | null;
+	row_hash: string | null;
+	status: PunchStatus;
+	anomaly_flags: Json;
+	quarantine_reason: string | null;
+	source: 'ingest' | 'admin_force_accept' | 'admin_discard';
+	admin_actor_id: string | null;
+	admin_note: string | null;
+	created_at: string;
+}
+
+export type DailySummary = {
 	employee_id: string;
 	work_date: string;
 	first_in_at: string | null;
@@ -212,6 +240,38 @@ export type Database =  {
 						referencedColumns: ['id'];
 					}
 				];
+			};
+			punch_audit: {
+				Row: PunchAudit;
+				Insert: {
+					id?: string;
+					punch_id: string;
+					employee_id: string;
+					employee_no: string;
+					employee_name: string;
+					punch_type: PunchType;
+					work_date: string;
+					captured_at: string;
+					received_at: string;
+					location_source?: LocationSource | null;
+					lat?: number | null;
+					lng?: number | null;
+					gps_accuracy_m?: number | null;
+					location_text?: string | null;
+					photo_path?: string | null;
+					payload_sha256: string;
+					prev_hash?: string | null;
+					row_hash?: string | null;
+					status: PunchStatus;
+					anomaly_flags?: Json;
+					quarantine_reason?: string | null;
+					source?: 'ingest' | 'admin_force_accept' | 'admin_discard';
+					admin_actor_id?: string | null;
+					admin_note?: string | null;
+					created_at?: string;
+				};
+				Update: Record<string, never>;
+				Relationships: [];
 			};
 			daily_summary: {
 				Row: DailySummary;
