@@ -89,7 +89,7 @@
 		min-height: 100dvh;
 		padding: 1.5rem;
 		gap: 2rem;
-		background: radial-gradient(circle at 50% 20%, #2e1b62 0%, #140d2b 70%);
+		background: var(--bg, #000000);
 	}
 
 	.brand {
@@ -105,7 +105,6 @@
 		align-items: center;
 		justify-content: center;
 		margin-bottom: 0.25rem;
-		filter: drop-shadow(0 4px 12px rgba(222, 77, 20, 0.35));
 	}
 
 	.app-name {
@@ -113,7 +112,6 @@
 		font-weight: 800;
 		color: #ffffff;
 		letter-spacing: -0.03em;
-		text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 	}
 
 	.subtitle {
@@ -125,10 +123,9 @@
 	.card {
 		width: 100%;
 		max-width: 400px;
-		background: var(--surface, #24154a);
-		border: 1px solid var(--border, #3f2776);
-		box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
-		border-radius: 16px;
+		background: var(--surface, #1a1a1a);
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		padding: 2rem 1.75rem;
 	}
 
@@ -155,11 +152,10 @@
 		padding: 0.75rem 1rem;
 		background: var(--bg);
 		border: 1px solid var(--border);
-		border-radius: 8px;
+		border-radius: 4px;
 		color: var(--text);
 		font-size: 1rem;
 		font-family: inherit;
-		transition: border-color 0.15s;
 		outline: none;
 	}
 
@@ -187,19 +183,16 @@
 		background: var(--accent, #ede947);
 		color: #1b0d38;
 		border: none;
-		border-radius: 8px;
+		border-radius: 4px;
 		font-size: 1rem;
 		font-weight: 800;
 		letter-spacing: 0.02em;
 		font-family: inherit;
 		cursor: pointer;
-		transition: opacity 0.15s, transform 0.1s;
 		margin-top: 0.25rem;
 	}
 
 	.btn-submit:hover:not(:disabled) {
-		opacity: 0.92;
-		transform: translateY(-1px);
 		opacity: 0.88;
 	}
 
@@ -208,3 +201,4 @@
 		cursor: not-allowed;
 	}
 </style>
+

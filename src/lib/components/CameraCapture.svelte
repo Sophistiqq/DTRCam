@@ -73,6 +73,13 @@
 
 	let permissionWatch: PermissionStatus | null = null;
 
+	function isMobileDevice(): boolean {
+		if (typeof navigator === 'undefined') return false;
+		const ua = navigator.userAgent;
+		return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+			|| (navigator.maxTouchPoints > 1 && /iPad|iPhone|iPod/.test(ua));
+	}
+
 	onMount(() => {
 		startCamera();
 		acquireGps();
@@ -297,8 +304,8 @@
 		if (isBlocked || gpsStatus === 'acquiring') return;
 
 		if (cameraError || !videoEl) {
-			// Trigger file capture fallback (same location rules apply there)
-			if (fileInputEl) fileInputEl.click();
+			// Trigger file capture fallback only on mobile — desktop is not allowed
+			if (isMobileDevice() && fileInputEl) fileInputEl.click();
 			return;
 		}
 
@@ -443,10 +450,15 @@
 	<div class="viewfinder-container">
 		{#if cameraError}
 			<div class="camera-error-box">
-				<p>{cameraError}</p>
-				<button class="btn-fallback" disabled={isBlocked || gpsStatus === 'acquiring'} onclick={() => fileInputEl?.click()}>
-					<Camera size={18} class="inline-icon" /> Take Photo with Device Camera
-				</button>
+				{#if isMobileDevice()}
+					<p>{cameraError}</p>
+					<button class="btn-fallback" disabled={isBlocked || gpsStatus === 'acquiring'} onclick={() => fileInputEl?.click()}>
+						<Camera size={18} class="inline-icon" /> Take Photo with Device Camera
+					</button>
+				{:else}
+					<p>DTRCam requires a mobile device with a camera. Desktop browsers cannot be used to submit attendance photos.</p>
+					<p class="desktop-hint">Please open DTRCam on your phone's browser.</p>
+				{/if}
 			</div>
 		{:else}
 			<!-- svelte-ignore a11y_media_has_caption -->
@@ -610,7 +622,6 @@
 		background: #ffffff;
 		opacity: 0;
 		pointer-events: none;
-		transition: opacity 0.15s ease-out;
 		z-index: 200;
 	}
 
@@ -624,7 +635,7 @@
 		justify-content: space-between;
 		padding: 1rem;
 		z-index: 10;
-		background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+		background: #000000;
 		gap: 0.5rem;
 	}
 
@@ -640,14 +651,13 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		backdrop-filter: blur(8px);
 	}
 
 	.gps-pill {
 		flex: 1;
 		max-width: 280px;
 		padding: 0.45rem 0.75rem;
-		border-radius: 20px;
+		border-radius: 3px;
 		font-size: 0.72rem;
 		font-family: inherit;
 		font-weight: 600;
@@ -662,7 +672,6 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		cursor: pointer;
-		backdrop-filter: blur(8px);
 	}
 
 	.gps-ready {
@@ -673,7 +682,6 @@
 	.gps-blocked {
 		border-color: rgba(219, 70, 62, 0.6);
 		color: #ff8c85;
-		animation: blockedPulse 1.4s ease-in-out infinite alternate;
 	}
 
 	.gps-weak {
@@ -681,30 +689,11 @@
 		color: #ede947;
 	}
 
-	@keyframes blockedPulse {
-		from {
-			box-shadow: 0 0 0 0 rgba(219, 70, 62, 0.45);
-		}
-		to {
-			box-shadow: 0 0 0 6px rgba(219, 70, 62, 0);
-		}
-	}
-
 	.pulse-dot {
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
 		background: #ede947;
-		animation: pulse 1s infinite alternate;
-	}
-
-	@keyframes pulse {
-		from {
-			opacity: 0.3;
-		}
-		to {
-			opacity: 1;
-		}
 	}
 
 	.viewfinder-container {
@@ -736,7 +725,7 @@
 		width: min(85vw, 85vh);
 		height: min(85vw, 85vh);
 		border: 2px dashed rgba(255, 255, 255, 0.3);
-		border-radius: 12px;
+		border-radius: 3px;
 		pointer-events: none;
 	}
 
@@ -749,16 +738,14 @@
 		border: 1px solid rgba(255, 255, 255, 0.3);
 		color: #ffffff;
 		padding: 0.35rem 0.75rem;
-		border-radius: 20px;
+		border-radius: 3px;
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
 		font-size: 0.75rem;
 		font-weight: 700;
-		backdrop-filter: blur(8px);
 		z-index: 6;
 		white-space: nowrap;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 	}
 
 	.live-overlay-preview {
@@ -769,11 +756,10 @@
 		background: rgba(22, 13, 51, 0.88);
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		padding: 0.4rem 0.85rem;
-		border-radius: 20px;
+		border-radius: 3px;
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
-		backdrop-filter: blur(8px);
 		z-index: 5;
 	}
 
@@ -816,9 +802,9 @@
 	}
 
 	.loc-block-card {
-		background: #24154a;
+		background: #1a1a1a;
 		border: 1px solid rgba(219, 70, 62, 0.6);
-		border-radius: 14px;
+		border-radius: 4px;
 		padding: 1.4rem 1.3rem;
 		max-width: 380px;
 		width: 100%;
@@ -827,19 +813,6 @@
 		align-items: center;
 		gap: 0.7rem;
 		text-align: center;
-		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-		animation: cardIn 0.25s ease-out;
-	}
-
-	@keyframes cardIn {
-		from {
-			opacity: 0;
-			transform: translateY(12px) scale(0.97);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
 	}
 
 	.loc-block-icon {
@@ -905,7 +878,7 @@
 		background: #ede947;
 		color: #160d33;
 		border: none;
-		border-radius: 8px;
+		border-radius: 3px;
 		font-weight: 800;
 		font-size: 0.92rem;
 		cursor: pointer;
@@ -918,7 +891,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 0.6rem;
-		background: linear-gradient(to top, rgba(14, 7, 31, 0.95), transparent);
+		background: #000000;
 		z-index: 10;
 	}
 
@@ -933,18 +906,16 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: transform 0.1s, border-color 0.2s;
 	}
 
 	.shutter-btn:active:not(:disabled) {
-		transform: scale(0.92);
+		border-color: rgba(255, 255, 255, 0.6);
 	}
 
 	.shutter-inner {
 		width: 100%;
 		height: 100%;
 		border-radius: 50%;
-		transition: transform 0.15s, background-color 0.2s;
 		position: relative;
 		display: flex;
 		align-items: center;
@@ -1004,7 +975,7 @@
 		background: #ede947;
 		color: #160d33;
 		border: none;
-		border-radius: 8px;
+		border-radius: 3px;
 		font-weight: 800;
 		font-size: 0.95rem;
 		cursor: pointer;
@@ -1015,12 +986,17 @@
 		cursor: not-allowed;
 	}
 
+	.desktop-hint {
+		margin: 0;
+		font-size: 0.82rem;
+		color: #8f80bd;
+	}
+
 	/* Manual Location Modal */
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
 		background: rgba(14, 7, 31, 0.85);
-		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1029,9 +1005,9 @@
 	}
 
 	.modal-card {
-		background: #24154a;
-		border: 1px solid #3f2776;
-		border-radius: 12px;
+		background: #1a1a1a;
+		border: 1px solid #333333;
+		border-radius: 4px;
 		padding: 1.5rem;
 		width: 100%;
 		max-width: 380px;
@@ -1055,9 +1031,9 @@
 	.manual-input {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		background: #140d2b;
-		border: 1px solid #3f2776;
-		border-radius: 8px;
+		background: #000000;
+		border: 1px solid #333333;
+		border-radius: 3px;
 		color: #ffffff;
 		font-size: 0.95rem;
 		outline: none;
@@ -1077,9 +1053,9 @@
 	.btn-cancel {
 		padding: 0.65rem 1rem;
 		background: transparent;
-		border: 1px solid #3f2776;
+		border: 1px solid #333333;
 		color: #b8abdd;
-		border-radius: 6px;
+		border-radius: 3px;
 		font-size: 0.9rem;
 		cursor: pointer;
 	}
@@ -1090,7 +1066,7 @@
 		border: none;
 		color: #160d33;
 		font-weight: 800;
-		border-radius: 6px;
+		border-radius: 3px;
 		font-size: 0.9rem;
 		cursor: pointer;
 	}
@@ -1100,3 +1076,4 @@
 		cursor: not-allowed;
 	}
 </style>
+

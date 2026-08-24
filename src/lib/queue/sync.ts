@@ -13,6 +13,8 @@ import {
 import { getLocalPunches, saveLocalPunch } from '$lib/history';
 import { getClockSyncState } from '$lib/clock';
 
+const MAX_RETRY_ATTEMPTS = 10;
+
 export interface SyncStatus {
 	isSyncing: boolean;
 	pendingCount: number;
@@ -93,6 +95,13 @@ export function initSyncEngine() {
  * Upload a single queued punch item to the server
  */
 async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
+	// Skip items that have exceeded max retries — remove from queue
+	if (item.attempts >= MAX_RETRY_ATTEMPTS) {
+		console.warn(`[Sync] Punch ${item.id} exceeded max retries (${MAX_RETRY_ATTEMPTS}), removing from queue`);
+		await removeQueuedPunch(item.id);
+		return true; // Continue processing next items
+	}
+
 	try {
 		const formData = new FormData();
 		formData.append('photo', item.photo_blob, `punch_${item.id}.jpg`);
@@ -113,14 +122,13 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 			gps_accuracy_m: item.gps_accuracy_m,
 			location_source: item.location_source,
 			location_text: item.location_text,
-			payload_sha256: item.payload_sha256,
-			prev_hash: item.prev_hash
+			payload_sha256: item.payload_sha256
 		};
 
 		formData.append('metadata', JSON.stringify(metadata));
 
 		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 15000);
+		const timeoutId = setTimeout(() => controller.abort(), 30000);
 
 		const response = await fetch('/api/punch/ingest', {
 			method: 'POST',

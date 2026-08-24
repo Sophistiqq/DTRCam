@@ -35,18 +35,7 @@ create table if not exists public.punches (
   status text not null default 'accepted' check (status in ('accepted', 'late_sync', 'quarantined', 'superseded')),
   anomaly_flags jsonb not null default '{}'::jsonb,
   quarantine_reason text,
-  synced_device_id uuid,
   created_at timestamptz not null default now()
-);
-
--- 4. devices
-create table if not exists public.devices (
-  id uuid primary key default gen_random_uuid(),
-  employee_id uuid not null references public.profiles(id),
-  model text,
-  os text,
-  last_seen_at timestamptz not null default now(),
-  clock_offset_ms integer not null default 0
 );
 
 -- 5. api_keys
@@ -93,7 +82,6 @@ create index if not exists daily_summary_date on public.daily_summary (work_date
 -- 9. RLS
 alter table public.profiles enable row level security;
 alter table public.punches enable row level security;
-alter table public.devices enable row level security;
 alter table public.api_keys enable row level security;
 alter table public.audit_log enable row level security;
 alter table public.daily_summary enable row level security;

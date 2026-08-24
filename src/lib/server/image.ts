@@ -3,6 +3,9 @@
  * Compresses punch photos to target <= 300KB and produces fast thumbnails.
  */
 
+// ponytail: stub — Bun.Image may not support resize/compress yet
+// implement when Bun.Image API stabilizes or use a native sharp/wasm alternative
+
 export interface ProcessedImageResult {
 	originalBuffer: Buffer;
 	thumbBuffer?: Buffer;

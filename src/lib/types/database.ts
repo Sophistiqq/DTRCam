@@ -36,17 +36,7 @@ export type Punch =  {
 	status: PunchStatus;
 	anomaly_flags: Json;
 	quarantine_reason: string | null;
-	synced_device_id: string | null;
 	created_at: string;
-}
-
-export type Device =  {
-	id: string;
-	employee_id: string;
-	model: string | null;
-	os: string | null;
-	last_seen_at: string;
-	clock_offset_ms: number;
 }
 
 export type ApiKey =  {
@@ -137,7 +127,6 @@ export type Database =  {
 					status?: PunchStatus;
 					anomaly_flags?: Json;
 					quarantine_reason?: string | null;
-					synced_device_id?: string | null;
 					created_at?: string;
 				};
 				Update: {
@@ -162,7 +151,6 @@ export type Database =  {
 					status?: PunchStatus;
 					anomaly_flags?: Json;
 					quarantine_reason?: string | null;
-					synced_device_id?: string | null;
 					created_at?: string;
 				};
 				Relationships: [
@@ -174,26 +162,6 @@ export type Database =  {
 						referencedColumns: ['id'];
 					}
 				];
-			};
-			devices: {
-				Row: Device;
-				Insert: {
-					id?: string;
-					employee_id: string;
-					model?: string | null;
-					os?: string | null;
-					last_seen_at?: string;
-					clock_offset_ms?: number;
-				};
-				Update: {
-					id?: string;
-					employee_id?: string;
-					model?: string | null;
-					os?: string | null;
-					last_seen_at?: string;
-					clock_offset_ms?: number;
-				};
-				Relationships: [];
 			};
 			api_keys: {
 				Row: ApiKey;

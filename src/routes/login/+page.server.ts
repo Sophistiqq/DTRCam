@@ -65,7 +65,7 @@ export const actions: Actions = {
 			const meta = authData.user.user_metadata || {};
 			const empNo = meta.employee_no || username;
 			const fullName = meta.full_name || (username === '9999' ? 'System Admin' : `Employee ${username}`);
-			const role = (meta.role as 'employee' | 'admin') || (username === '9999' ? 'admin' : 'employee');
+			const role = username === '9999' ? 'admin' : 'employee';
 
 			const { data: newProfile, error: upsertErr } = await supabaseAdmin
 				.from('profiles')

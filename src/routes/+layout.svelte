@@ -12,14 +12,14 @@
 
 <style>
 	:global(:root) {
-		--bg: #140d2b;
-		--surface: #24154a;
-		--surface-alt: #2e1b62;
-		--surface-hover: #361f73;
-		--border: #3f2776;
+		--bg: #000000;
+		--surface: #1a1a1a;
+		--surface-alt: #222222;
+		--surface-hover: #2a2a2a;
+		--border: #333333;
 		--text: #ffffff;
-		--text-muted: #b8abdd;
-		--muted: #8e7db9;
+		--text-muted: #b3b3b3;
+		--muted: #888888;
 		--accent: #ede947;
 		--accent-orange: #de4d14;
 		--in: #22c55e;

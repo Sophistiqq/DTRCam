@@ -102,14 +102,13 @@
 	.btn-logout {
 		font-size: 0.8rem;
 		padding: 0.35rem 0.75rem;
-		border-radius: 6px;
+		border-radius: 4px;
 		border: 1px solid var(--border, #2a2a2a);
 		background: transparent;
 		color: var(--muted, #888);
 		cursor: pointer;
 		text-decoration: none;
 		font-family: inherit;
-		transition: border-color 0.15s, color 0.15s;
 	}
 
 	.btn-logout:hover {

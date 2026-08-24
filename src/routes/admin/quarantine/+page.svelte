@@ -207,7 +207,7 @@
 
 	.count-pill {
 		padding: 0.4rem 0.85rem;
-		border-radius: 20px;
+		border-radius: 2px;
 		background: rgba(251, 146, 60, 0.15);
 		border: 1px solid rgba(251, 146, 60, 0.4);
 		color: #fb923c;
@@ -217,7 +217,7 @@
 	.card {
 		background: var(--surface, #1a1a1a);
 		border: 1px solid var(--border, #2a2a2a);
-		border-radius: 12px;
+		border-radius: 4px;
 		overflow: hidden;
 	}
 
@@ -276,7 +276,7 @@
 		font-size: 0.75rem;
 		font-weight: 800;
 		padding: 0.25rem 0.6rem;
-		border-radius: 6px;
+		border-radius: 4px;
 		letter-spacing: 0.04em;
 	}
 
@@ -365,7 +365,7 @@
 		border: 1px solid rgba(219, 70, 62, 0.3);
 		color: #db463e;
 		padding: 0.6rem 0.75rem;
-		border-radius: 8px;
+		border-radius: 4px;
 		font-size: 0.82rem;
 		line-height: 1.4;
 	}
@@ -375,10 +375,10 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 0.5rem;
 		font-size: 0.8rem;
-		background: #140d2b;
-		border: 1px solid var(--border, #3f2776);
+		background: #000000;
+		border: 1px solid var(--border, #333333);
 		padding: 0.75rem;
-		border-radius: 8px;
+		border-radius: 4px;
 	}
 
 	.meta-item {
@@ -407,7 +407,7 @@
 		flex: 1;
 		padding: 0.6rem;
 		font-size: 0.85rem;
-		border-radius: 6px;
+		border-radius: 4px;
 		cursor: pointer;
 		font-weight: 800;
 		text-align: center;
@@ -429,7 +429,7 @@
 		background: #db463e;
 		color: #ffffff;
 		border: none;
-		border-radius: 8px;
+		border-radius: 4px;
 		font-weight: 700;
 		padding: 0.65rem 1.1rem;
 		cursor: pointer;
@@ -438,9 +438,9 @@
 	.btn-outline {
 		padding: 0.65rem 1rem;
 		background: transparent;
-		border: 1px solid var(--border, #3f2776);
+		border: 1px solid var(--border, #333333);
 		color: var(--text, #ffffff);
-		border-radius: 8px;
+		border-radius: 4px;
 		font-size: 0.85rem;
 		cursor: pointer;
 	}
@@ -449,8 +449,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(14, 7, 31, 0.85);
-		backdrop-filter: blur(4px);
+		background: rgba(14, 7, 31, 0.85);;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -459,9 +458,9 @@
 	}
 
 	.modal-card {
-		background: var(--surface, #24154a);
-		border: 1px solid var(--border, #3f2776);
-		border-radius: 14px;
+		background: var(--surface, #1a1a1a);
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		padding: 1.5rem;
 		width: 100%;
 		max-width: 440px;
@@ -485,9 +484,9 @@
 	.btn-close {
 		width: 32px;
 		height: 32px;
-		border-radius: 50%;
-		background: #140d2b;
-		border: 1px solid var(--border, #3f2776);
+		border-radius: 4px;
+		background: #000000;
+		border: 1px solid var(--border, #333333);
 		color: #ffffff;
 		cursor: pointer;
 	}
@@ -519,9 +518,9 @@
 	.field input {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		background: #140d2b;
-		border: 1px solid var(--border, #3f2776);
-		border-radius: 8px;
+		background: #000000;
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		color: #ffffff;
 		font-size: 0.95rem;
 		outline: none;
@@ -538,3 +537,4 @@
 		margin-top: 0.5rem;
 	}
 </style>
+

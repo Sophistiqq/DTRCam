@@ -42,8 +42,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		const metadata: IngestMetadata = JSON.parse(rawMetadata);
 
-		// Determine employee_id: prefer authenticated session, fallback to metadata if authorized
-		const employeeId = locals.user?.id || metadata.employee_id;
+		// Determine employee_id: always require authenticated session
+		const employeeId = locals.user?.id;
 		if (!employeeId) {
 			return json({ error: 'Unauthenticated punch upload' }, { status: 401 });
 		}
@@ -115,11 +115,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Validation F: Work-date integrity / overnight time-out detection.
-		// The client logs a TIME OUT under the work date of its TIME IN, so an
-		// overnight shift (IN Mon 8:30 AM → OUT Tue 10:00 AM) legitimately carries
-		// yesterday's work date with today's capture time. Such cross-date punches
-		// are accepted but QUARANTINED for admin review.
-		if (typeof metadata.timezone_offset_min === 'number') {
+		// Requires timezone_offset_min to verify the work date against capture time.
+		if (typeof metadata.timezone_offset_min !== 'number') {
+			return json({ error: 'Missing timezone_offset_min — update your app' }, { status: 400 });
+		}
+		{
 			const local = new Date(captureEpoch + metadata.timezone_offset_min * 60 * 1000);
 			const expectedWorkDate = [
 				local.getUTCFullYear(),
@@ -213,33 +213,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			console.warn('[Storage] Supabase storage upload warning:', uploadError.message);
 		}
 
-		// 4. Device registration / offset tracking
-		let syncedDeviceId: string | null = null;
-		try {
-			const userAgent = request.headers.get('user-agent') || 'Unknown';
-			const clockOffsetMs = receivedEpoch - captureEpoch;
-
-			const { data: deviceData } = await supabaseAdmin
-				.from('devices')
-				.upsert(
-					{
-						employee_id: employeeId,
-						model: userAgent.slice(0, 100),
-						os: userAgent.includes('iPhone') ? 'iOS' : userAgent.includes('Android') ? 'Android' : 'Web',
-						last_seen_at: receivedAt.toISOString(),
-						clock_offset_ms: clockOffsetMs
-					},
-					{ onConflict: 'employee_id' }
-				)
-				.select('id')
-				.single();
-
-			if (deviceData) syncedDeviceId = deviceData.id;
-		} catch (deviceErr) {
-			console.warn('[Device] Device tracking error:', deviceErr);
-		}
-
-		// 5. Insert Record into Punches Table
+		// 4. Insert Record into Punches Table
 		const punchRecord = {
 			id: punchId,
 			employee_id: employeeId,
@@ -261,8 +235,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			row_hash: rowHash,
 			status,
 			anomaly_flags: anomalyFlags,
-			quarantine_reason: quarantineReason,
-			synced_device_id: syncedDeviceId
+			quarantine_reason: quarantineReason
 		};
 
 		const { error: insertError } = await supabaseAdmin

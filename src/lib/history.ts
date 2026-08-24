@@ -71,7 +71,10 @@ export function getTodayPunches(workDate: string): LocalPunchRecord[] {
  * Returns null when every session is properly closed.
  */
 export function findOpenTimeIn(records: LocalPunchRecord[]): LocalPunchRecord | null {
-	const active = records.filter((r) => !r.duplicate && r.status !== 'superseded');
+	// Quarantined records are stored but never count as valid in/out punches
+	const active = records.filter(
+		(r) => !r.duplicate && r.status !== 'superseded' && r.status !== 'quarantined'
+	);
 	active.sort((a, b) => new Date(a.captured_at).getTime() - new Date(b.captured_at).getTime());
 
 	let open: LocalPunchRecord | null = null;

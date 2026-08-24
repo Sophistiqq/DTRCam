@@ -42,8 +42,8 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.75rem 1rem;
-		background: var(--surface, #24154a);
-		border-bottom: 1px solid var(--border, #3f2776);
+		background: var(--surface, #1a1a1a);
+		border-bottom: 1px solid var(--border, #333333);
 		position: sticky;
 		top: 0;
 		z-index: 10;
@@ -81,14 +81,13 @@
 	.btn-logout {
 		font-size: 0.8rem;
 		padding: 0.35rem 0.75rem;
-		border-radius: 6px;
+		border-radius: 4px;
 		border: 1px solid var(--border, #2a2a2a);
 		background: transparent;
 		color: var(--muted, #888);
 		cursor: pointer;
 		text-decoration: none;
 		font-family: inherit;
-		transition: border-color 0.15s, color 0.15s;
 	}
 
 	.btn-logout:hover {
@@ -100,8 +99,8 @@
 		display: flex;
 		gap: 0;
 		overflow-x: auto;
-		background: var(--surface, #24154a);
-		border-bottom: 1px solid var(--border, #3f2776);
+		background: var(--surface, #1a1a1a);
+		border-bottom: 1px solid var(--border, #333333);
 		scrollbar-width: none;
 	}
 
@@ -116,13 +115,12 @@
 		color: var(--text-muted, #b8abdd);
 		text-decoration: none;
 		border-bottom: 2px solid transparent;
-		transition: color 0.15s, border-color 0.15s;
 		white-space: nowrap;
 	}
 
 	.nav-link:hover {
 		color: var(--text, #ffffff);
-		border-bottom-color: var(--border, #3f2776);
+		border-bottom-color: var(--border, #333333);
 	}
 
 	/* Active link — SvelteKit adds aria-current="page" automatically */
@@ -139,3 +137,4 @@
 		margin: 0 auto;
 	}
 </style>
+

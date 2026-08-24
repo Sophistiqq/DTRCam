@@ -22,13 +22,13 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 100dvh;
-		background: var(--bg, #140d2b);
+		background: var(--bg, #000000);
 	}
 
 	.spinner {
 		width: 36px;
 		height: 36px;
-		border: 3px solid var(--border, #3f2776);
+		border: 3px solid var(--border, #333333);
 		border-top-color: var(--accent, #ede947);
 		border-radius: 50%;
 		animation: spin 0.7s linear infinite;
@@ -40,3 +40,4 @@
 		}
 	}
 </style>
+

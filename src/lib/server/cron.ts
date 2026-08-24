@@ -1,6 +1,6 @@
 /**
  * Scheduled Cron Jobs for DTRCam
- * Runs inside the server process to rebuild daily summaries, prune stale devices, and verify hash chains.
+ * Runs inside the server process to rebuild daily summaries and verify hash chains.
  */
 
 import crypto from 'node:crypto';
@@ -111,20 +111,6 @@ export async function rebuildDailySummary(targetDate?: string): Promise<void> {
 }
 
 /**
- * Housekeeping: prune old devices not seen in > 90 days
- */
-export async function runHousekeeping(): Promise<void> {
-	debugLog('Running system housekeeping');
-	const cutoff = new Date();
-	cutoff.setDate(cutoff.getDate() - 90);
-
-	await supabaseAdmin
-		.from('devices')
-		.delete()
-		.lt('last_seen_at', cutoff.toISOString());
-}
-
-/**
  * Hash chain integrity sweep for all employees
  */
 export async function runIntegritySweep(): Promise<void> {
@@ -147,8 +133,8 @@ export async function runIntegritySweep(): Promise<void> {
 		let broken = false;
 
 		for (const p of punches || []) {
-			if (p.prev_hash && p.prev_hash !== expectedPrev) {
-				console.warn(`[Integrity] Chain break detected on employee ${emp.employee_no}, punch ${p.id}`);
+			if (p.prev_hash !== expectedPrev) {
+				console.warn(`[Integrity] Chain break detected on employee ${emp.employee_no}, punch ${p.id} (expected prev_hash: ${expectedPrev}, got: ${p.prev_hash})`);
 				broken = true;
 				break;
 			}
@@ -182,14 +168,17 @@ export function initCronScheduler() {
 
 	console.log('[Cron] Initialized background scheduler');
 
-	// Check every minute if it's 02:00 or 03:00 UTC/Local
+	// Check every minute if it's 02:00 or 03:00 Manila time (UTC+8)
 	let lastDailyRun = '';
 
 	setInterval(() => {
 		const now = new Date();
-		const hours = now.getHours();
-		const minutes = now.getMinutes();
-		const dateStr = now.toISOString().split('T')[0];
+		// Convert to Manila time (Asia/Manila = UTC+8)
+		const manilaMs = now.getTime() + 8 * 60 * 60 * 1000;
+		const manilaDate = new Date(manilaMs);
+		const hours = manilaDate.getUTCHours();
+		const minutes = manilaDate.getUTCMinutes();
+		const dateStr = manilaDate.toISOString().split('T')[0];
 
 		// 02:00 Daily Summary Run
 		if (hours === 2 && minutes === 0 && lastDailyRun !== dateStr) {
@@ -197,9 +186,8 @@ export function initCronScheduler() {
 			rebuildDailySummary().catch(console.error);
 		}
 
-		// 03:00 Housekeeping Run
+		// 03:00 Integrity Sweep
 		if (hours === 3 && minutes === 0) {
-			runHousekeeping().catch(console.error);
 			runIntegritySweep().catch(console.error);
 		}
 	}, 60 * 1000);

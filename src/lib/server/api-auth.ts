@@ -6,12 +6,16 @@ import crypto from 'node:crypto';
 import { supabaseAdmin } from '$lib/server/supabase';
 import { error } from '@sveltejs/kit';
 
-const API_PEPPER = process.env.API_PEPPER || 'dev-pepper-change-in-production';
+const API_PEPPER = process.env.API_PEPPER;
+if (!API_PEPPER) {
+	console.error('[API Auth] FATAL: API_PEPPER env var is not set. All API key hashes will be insecure.');
+}
 
 /**
  * Hash an API key with HMAC-SHA256 using the server pepper
  */
 export function hashApiKey(key: string): string {
+	if (!API_PEPPER) throw new Error('API_PEPPER env var is not set');
 	return crypto.createHmac('sha256', API_PEPPER).update(key.trim()).digest('hex');
 }
 
@@ -48,6 +52,19 @@ export async function createApiKey(label: string): Promise<{ id: string; key: st
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_MINUTE = 120;
 const rateLimitMap = new Map<string, number[]>();
+
+// Periodic cleanup: sweep stale entries every 5 minutes
+setInterval(() => {
+	const cutoff = Date.now() - RATE_LIMIT_WINDOW_MS;
+	for (const [key, timestamps] of rateLimitMap) {
+		const fresh = timestamps.filter((t) => t > cutoff);
+		if (fresh.length === 0) {
+			rateLimitMap.delete(key);
+		} else {
+			rateLimitMap.set(key, fresh);
+		}
+	}
+}, 5 * 60 * 1000);
 
 function checkRateLimit(keyHash: string): boolean {
 	const now = Date.now();

@@ -128,7 +128,7 @@
 		padding: 0.55rem 0.85rem;
 		background: var(--surface, #1a1a1a);
 		border: 1px solid var(--border, #2a2a2a);
-		border-radius: 8px;
+		border-radius: 4px;
 		color: #ffffff;
 		font-size: 0.85rem;
 		outline: none;
@@ -137,7 +137,7 @@
 	.card {
 		background: var(--surface, #1a1a1a);
 		border: 1px solid var(--border, #2a2a2a);
-		border-radius: 12px;
+		border-radius: 4px;
 		overflow: hidden;
 	}
 
@@ -204,7 +204,7 @@
 		background: #262626;
 		border: 1px solid #333333;
 		color: #ffffff;
-		border-radius: 6px;
+		border-radius: 4px;
 		font-size: 0.8rem;
 		cursor: pointer;
 	}
@@ -213,8 +213,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(14, 7, 31, 0.85);
-		backdrop-filter: blur(4px);
+		background: rgba(14, 7, 31, 0.85);;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -223,9 +222,9 @@
 	}
 
 	.modal-card {
-		background: var(--surface, #24154a);
-		border: 1px solid var(--border, #3f2776);
-		border-radius: 14px;
+		background: var(--surface, #1a1a1a);
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		padding: 1.5rem;
 		width: 100%;
 		max-width: 520px;
@@ -249,17 +248,17 @@
 	.btn-close {
 		width: 32px;
 		height: 32px;
-		border-radius: 50%;
-		background: #140d2b;
-		border: 1px solid var(--border, #3f2776);
+		border-radius: 4px;
+		background: #000000;
+		border: 1px solid var(--border, #333333);
 		color: #ffffff;
 		cursor: pointer;
 	}
 
 	.json-box {
-		background: #140d2b;
-		border: 1px solid var(--border, #3f2776);
-		border-radius: 8px;
+		background: #000000;
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		padding: 1rem;
 		font-family: monospace;
 		font-size: 0.8rem;
@@ -280,9 +279,10 @@
 		background: var(--accent, #ede947);
 		color: #160d33;
 		border: none;
-		border-radius: 8px;
+		border-radius: 4px;
 		font-weight: 800;
 		font-size: 0.9rem;
 		cursor: pointer;
 	}
 </style>
+

@@ -73,7 +73,7 @@
 	.hero-card {
 		background: var(--surface, #1a1a1a);
 		border: 1px solid var(--border, #2a2a2a);
-		border-radius: 14px;
+		border-radius: 4px;
 		padding: 1.75rem 1.5rem;
 		display: flex;
 		flex-direction: column;
@@ -100,15 +100,14 @@
 	}
 
 	.stat-box {
-		background: var(--bg, #140d2b);
-		border: 1px solid var(--border, #3f2776);
-		border-radius: 10px;
+		background: var(--bg, #000000);
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;
 		text-decoration: none;
 		color: inherit;
-		transition: border-color 0.15s, transform 0.1s;
 	}
 
 	.stat-box:hover {
@@ -149,11 +148,10 @@
 		gap: 0.9rem;
 		background: var(--surface, #1a1a1a);
 		border: 1px solid var(--border, #2a2a2a);
-		border-radius: 12px;
+		border-radius: 4px;
 		padding: 1.1rem;
 		text-decoration: none;
 		color: inherit;
-		transition: border-color 0.15s;
 	}
 
 	.section-card:hover {
@@ -178,3 +176,4 @@
 		line-height: 1.4;
 	}
 </style>
+

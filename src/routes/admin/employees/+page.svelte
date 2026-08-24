@@ -255,7 +255,7 @@
 	.card {
 		background: var(--surface, #1a1a1a);
 		border: 1px solid var(--border, #2a2a2a);
-		border-radius: 12px;
+		border-radius: 4px;
 		overflow: hidden;
 	}
 
@@ -322,7 +322,7 @@
 	.status-pill {
 		font-size: 0.75rem;
 		padding: 0.15rem 0.5rem;
-		border-radius: 20px;
+		border-radius: 2px;
 		background: rgba(219, 70, 62, 0.2);
 		color: #db463e;
 	}
@@ -348,7 +348,7 @@
 		background: var(--accent, #ede947);
 		color: #160d33;
 		border: none;
-		border-radius: 8px;
+		border-radius: 4px;
 		font-weight: 800;
 		font-size: 0.9rem;
 		cursor: pointer;
@@ -360,9 +360,9 @@
 	.btn-outline {
 		padding: 0.65rem 1rem;
 		background: transparent;
-		border: 1px solid var(--border, #3f2776);
+		border: 1px solid var(--border, #333333);
 		color: var(--text, #ffffff);
-		border-radius: 8px;
+		border-radius: 4px;
 		font-size: 0.85rem;
 		cursor: pointer;
 	}
@@ -370,7 +370,7 @@
 	.btn-sm {
 		padding: 0.35rem 0.65rem;
 		font-size: 0.8rem;
-		border-radius: 6px;
+		border-radius: 4px;
 		cursor: pointer;
 		font-family: inherit;
 	}
@@ -389,7 +389,7 @@
 
 	.alert-box {
 		padding: 1rem 1.25rem;
-		border-radius: 10px;
+		border-radius: 4px;
 		font-size: 0.9rem;
 	}
 
@@ -420,8 +420,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(14, 7, 31, 0.85);
-		backdrop-filter: blur(4px);
+		background: rgba(14, 7, 31, 0.85);;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -430,9 +429,9 @@
 	}
 
 	.modal-card {
-		background: var(--surface, #24154a);
-		border: 1px solid var(--border, #3f2776);
-		border-radius: 14px;
+		background: var(--surface, #1a1a1a);
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		padding: 1.5rem;
 		width: 100%;
 		max-width: 440px;
@@ -456,9 +455,9 @@
 	.btn-close {
 		width: 32px;
 		height: 32px;
-		border-radius: 50%;
-		background: #140d2b;
-		border: 1px solid var(--border, #3f2776);
+		border-radius: 4px;
+		background: #000000;
+		border: 1px solid var(--border, #333333);
 		color: #ffffff;
 		cursor: pointer;
 	}
@@ -485,9 +484,9 @@
 	.select-input {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		background: #140d2b;
-		border: 1px solid var(--border, #3f2776);
-		border-radius: 8px;
+		background: #000000;
+		border: 1px solid var(--border, #333333);
+		border-radius: 4px;
 		color: #ffffff;
 		font-size: 0.95rem;
 		font-family: inherit;
@@ -506,3 +505,4 @@
 		margin-top: 0.5rem;
 	}
 </style>
+

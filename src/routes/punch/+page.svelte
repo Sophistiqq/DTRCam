@@ -18,7 +18,7 @@
 		findOpenTimeIn,
 		type LocalPunchRecord
 	} from '$lib/history';
-	import { enqueuePunch, getLatestQueuedHashForEmployee } from '$lib/queue/db';
+	import { enqueuePunch } from '$lib/queue/db';
 	import { initSyncEngine, triggerSync, subscribeSyncStatus, type SyncStatus } from '$lib/queue/sync';
 	import type { PunchType } from '$lib/types/database';
 	import {
@@ -75,7 +75,11 @@
 	// locked until an open shift exists — forcing proper time out discipline.
 	const openTimeIn = $derived(findOpenTimeIn(allRecords));
 	const openIsToday = $derived(openTimeIn?.work_date === todayWorkDate);
-	const todayHasOut = $derived(todayRecords.some((r) => r.punch_type === 'out' && !isDuplicate(r)));
+	const todayHasOut = $derived(
+		todayRecords.some(
+			(r) => r.punch_type === 'out' && !isDuplicate(r) && r.status !== 'quarantined'
+		)
+	);
 
 	const timeInDisabled  = $derived(openTimeIn !== null);
 	const timeOutDisabled = $derived(openTimeIn === null);
@@ -107,6 +111,9 @@
 	}
 
 	function closeRecord() {
+		if (selectedRecordPhoto && selectedRecordPhoto.startsWith('blob:')) {
+			URL.revokeObjectURL(selectedRecordPhoto);
+		}
 		selectedRecord = null;
 		selectedRecordPhoto = null;
 		isLoadingPhoto = false;
@@ -176,7 +183,7 @@
 		// Enrich any records that have photos in IndexedDB cache
 		const enriched = await Promise.all(
 			filtered.map(async (rec) => {
-				if (rec.thumb_url || rec.photo_data_url) return rec;
+				if (rec.thumb_url) return rec;
 				const cached = await getCachedPunchPhoto(rec.id);
 				if (cached) {
 					return { ...rec, thumb_url: cached };
@@ -211,7 +218,6 @@
 	}) {
 		const recordId = crypto.randomUUID();
 		const employeeId = profile?.id || 'anonymous';
-		const prevHash = await getLatestQueuedHashForEmployee(employeeId);
 
 		const punchType = activePunchType || 'in';
 
@@ -244,8 +250,7 @@
 			location_source: payload.location_source,
 			location_text: payload.location_text,
 			photo_blob: payload.blob,
-			payload_sha256: payload.sha256,
-			prev_hash: prevHash
+			payload_sha256: payload.sha256
 		});
 
 		// 3. Save lightweight record in local storage (instant UI, no quota overflow)
@@ -627,10 +632,9 @@
 		border: 1px solid var(--accent, #ede947);
 		color: #ffffff;
 		padding: 0.75rem 1rem;
-		border-radius: 10px;
+		border-radius: 4px;
 		font-weight: 600;
 		font-size: 0.95rem;
-		animation: fadeIn 0.2s ease-out;
 	}
 
 	.alert-banner {
@@ -638,8 +642,7 @@
 		align-items: flex-start;
 		gap: 0.75rem;
 		padding: 0.85rem 1rem;
-		border-radius: 12px;
-		animation: fadeIn 0.25s ease-out;
+		border-radius: 4px;
 	}
 
 	.alert-icon {
@@ -689,7 +692,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.65rem 1rem;
-		border-radius: 10px;
+		border-radius: 4px;
 		background: rgba(222, 77, 20, 0.15);
 		border: 1px solid rgba(222, 77, 20, 0.4);
 		color: #ffffff;
@@ -734,17 +737,6 @@
 		cursor: not-allowed;
 	}
 
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(-8px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
 	.actions {
 		display: flex;
 		flex-direction: column;
@@ -758,15 +750,13 @@
 		justify-content: center;
 		gap: 0.2rem;
 		min-height: 90px;
-		border-radius: 14px;
+		border-radius: 4px;
 		cursor: pointer;
 		font-family: inherit;
-		transition: opacity 0.15s, transform 0.1s;
 		padding: 1rem;
 	}
 
 	.punch-btn:active {
-		transform: scale(0.98);
 		opacity: 0.85;
 	}
 
@@ -789,14 +779,13 @@
 	}
 
 	.time-in {
-		background: linear-gradient(135deg, rgba(34, 197, 94, 0.22) 0%, rgba(237, 233, 71, 0.08) 50%, rgba(36, 21, 74, 0.9) 100%);
+		background: rgba(34, 197, 94, 0.22);
 		border: 2px solid #22c55e;
 		color: #22c55e;
 	}
 
 	.time-out {
-		background: linear-gradient(135deg, rgba(222, 77, 20, 0.2) 0%, rgba(219, 70, 62, 0.15) 50%, rgba(36, 21, 74, 0.9) 100%);
-		border: 2px solid var(--accent-orange, #de4d14);
+		background: rgba(222, 77, 20, 0.18);		border: 2px solid var(--accent-orange, #de4d14);
 		color: var(--accent-orange, #de4d14);
 	}
 
@@ -861,7 +850,6 @@
 		font-size: 0.75rem;
 		cursor: pointer;
 		font-family: inherit;
-		transition: all 0.15s;
 	}
 
 	.btn-refresh:hover:not(:disabled) {
@@ -1013,7 +1001,7 @@
 	.detail-page {
 		position: fixed;
 		inset: 0;
-		background: var(--bg, #140d2b);
+		background: var(--bg, #000000);
 		display: flex;
 		flex-direction: column;
 		z-index: 100;
@@ -1025,7 +1013,7 @@
 		padding: 0.85rem 1rem;
 		background: rgba(219, 70, 62, 0.2);
 		border: 1px solid rgba(219, 70, 62, 0.5);
-		border-radius: 10px;
+		border-radius: 4px;
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
@@ -1171,12 +1159,11 @@
 		padding: 0.75rem;
 		background: var(--accent-orange, #de4d14);
 		color: #ffffff;
-		border-radius: 8px;
+		border-radius: 4px;
 		text-decoration: none;
 		font-weight: 700;
 		font-size: 0.9rem;
 		margin-top: 0.5rem;
-		transition: opacity 0.15s;
 	}
 
 	.btn-maps:hover {
@@ -1198,3 +1185,4 @@
 		vertical-align: middle;
 	}
 </style>
+

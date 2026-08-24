@@ -88,7 +88,6 @@ export async function injectExif(jpegBlob: Blob, metadata: ExifMetadata): Promis
 function buildApp1Segment(meta: ExifMetadata): Uint8Array {
 	const dateStr = toExifDateTime(meta.date) + '\0';
 	const softwareStr = 'DTRCam v1.0\0';
-	const userCommentStr = `Employee: ${meta.employeeName} (${meta.employeeNo}) | Type: ${meta.punchType.toUpperCase()} | Loc: ${meta.locationText || 'GPS'}\0`;
 
 	// Memory buffer with byte writer helper
 	const buf = new ArrayBuffer(2048);
@@ -148,11 +147,26 @@ function buildApp1Segment(meta: ExifMetadata): Uint8Array {
 	let gpsIfdStart = 0;
 	if (hasGps) {
 		gpsIfdOffset = p - tiffStart;
-		const gpsEntryCount = 4; // GPSVersionID (0), GPSLatitudeRef (1), GPSLatitude (2), GPSLongitudeRef (3), GPSLongitude (4)
+		const gpsEntryCount = 4; // GPSLatitudeRef, GPSLatitude, GPSLongitudeRef, GPSLongitude
 		view.setUint16(p, gpsEntryCount, true);
 		p += 2;
 		gpsIfdStart = p;
 		p += gpsEntryCount * 12 + 4;
+	}
+
+	// Bounds check: truncate user comment if it would overflow the buffer
+	const fixedOverhead = 200 + dateStr.length + softwareStr.length + `DTRCam Punch Record\0`.length + (hasGps ? 48 : 0) + 64;
+	const maxCommentLen = Math.max(0, buf.byteLength - p - fixedOverhead);
+	const commentBase = `Employee: ${meta.employeeName} (${meta.employeeNo}) | Type: ${meta.punchType.toUpperCase()} | Loc: `;
+	const commentSuffix = '\0';
+	const maxLocLen = maxCommentLen - commentBase.length - commentSuffix.length;
+	let userCommentStr: string;
+	if (maxLocLen <= 0 || maxCommentLen <= 0) {
+		userCommentStr = `\0`;
+	} else if (meta.locationText && meta.locationText.length > maxLocLen) {
+		userCommentStr = `${commentBase}${meta.locationText.slice(0, maxLocLen)}${commentSuffix}`;
+	} else {
+		userCommentStr = `${commentBase}${meta.locationText || 'GPS'}${commentSuffix}`;
 	}
 
 	// Now append strings and values in the data section (p)

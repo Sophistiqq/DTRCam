@@ -22,7 +22,6 @@ export interface QueuedPunchItem {
 	location_text: string | null;
 	photo_blob: Blob;
 	payload_sha256: string;
-	prev_hash: string | null;
 	attempts: number;
 	last_attempt_at: string | null;
 	error_message: string | null;
@@ -128,18 +127,6 @@ export async function recordPunchAttemptError(id: string, errorMessage: string):
 		item.error_message = errorMessage;
 		await db.put('punch_queue', item);
 	}
-}
-
-/**
- * Get the most recent punch record hash for a given employee (used for chain building).
- */
-export async function getLatestQueuedHashForEmployee(employeeId: string): Promise<string | null> {
-	const db = await getDb();
-	const employeeItems = await db.getAllFromIndex('punch_queue', 'by-employee', employeeId);
-	if (employeeItems.length === 0) return null;
-	// Sort by captured_at descending
-	employeeItems.sort((a, b) => b.created_at - a.created_at);
-	return employeeItems[0].payload_sha256;
 }
 
 /**
