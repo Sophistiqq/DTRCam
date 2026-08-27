@@ -92,6 +92,26 @@ export function initSyncEngine() {
 }
 
 /**
+ * Resolve employee_id for upload: if the queued item has an employee_no
+ * (from offline /cam), resolve it to the authenticated user's UUID.
+ */
+function resolveEmployeeId(queuedId: string): string {
+	// UUIDs contain hyphens at standard positions
+	if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(queuedId)) {
+		return queuedId;
+	}
+	// It's an employee_no — try to get the real UUID from cached profile
+	try {
+		const raw = localStorage.getItem('dtrcam_cached_profile');
+		if (raw) {
+			const profile = JSON.parse(raw);
+			if (profile?.id) return profile.id;
+		}
+	} catch {}
+	return queuedId;
+}
+
+/**
  * Upload a single queued punch item to the server
  */
 async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
@@ -110,7 +130,7 @@ async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
 
 		const metadata = {
 			id: item.id,
-			employee_id: item.employee_id,
+			employee_id: resolveEmployeeId(item.employee_id),
 			work_date: item.work_date,
 			punch_type: item.punch_type,
 			captured_at: item.captured_at,

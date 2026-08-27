@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import AppLogo from '$lib/components/AppLogo.svelte';
+	import { Camera } from 'lucide-svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -77,6 +78,10 @@
 				{submitting ? 'Signing in…' : 'Sign In'}
 			</button>
 		</form>
+
+		<a href="/cam" class="camera-link">
+			<Camera size={16} /> Use Camera Without Login
+		</a>
 	</main>
 </div>
 
@@ -199,6 +204,28 @@
 	.btn-submit:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.camera-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		margin-top: 1.25rem;
+		padding: 0.65rem;
+		background: transparent;
+		border: 1px dashed var(--border, #333333);
+		border-radius: 4px;
+		color: var(--muted, #888);
+		text-decoration: none;
+		font-size: 0.85rem;
+		font-family: inherit;
+		transition: border-color 0.15s, color 0.15s;
+	}
+
+	.camera-link:hover {
+		border-color: var(--accent, #ede947);
+		color: var(--accent, #ede947);
 	}
 </style>
 

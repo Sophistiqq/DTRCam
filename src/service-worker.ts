@@ -1,5 +1,5 @@
 /// <reference types="@sveltejs/kit" />
-/// <reference no-default-lib="true"/>
+/// <reference no-default_lib="true"/>
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
@@ -10,11 +10,14 @@ import { build, files, version } from '$service-worker';
 const CACHE_NAME = `dtrcam-cache-${version}`;
 const ASSETS_TO_CACHE = [...build, ...files];
 
+// Pages to eagerly cache during install for offline camera availability
+const OFFLINE_PAGES = ['/cam', '/login', '/punch', '/'];
+
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
 		caches
 			.open(CACHE_NAME)
-			.then((cache) => cache.addAll(ASSETS_TO_CACHE))
+			.then((cache) => cache.addAll([...ASSETS_TO_CACHE, ...OFFLINE_PAGES]))
 			.then(() => sw.skipWaiting())
 	);
 });
@@ -66,11 +69,15 @@ sw.addEventListener('fetch', (event) => {
 				const cachedPage = await cache.match(event.request);
 				if (cachedPage) return cachedPage;
 
-				// 2. Cached /punch page
+				// 2. Standalone camera — works without auth, the core offline feature
+				const cachedCam = await cache.match('/cam');
+				if (cachedCam) return cachedCam;
+
+				// 3. Cached /punch page (if previously visited while logged in)
 				const cachedPunch = await cache.match('/punch');
 				if (cachedPunch) return cachedPunch;
 
-				// 3. Cached root /
+				// 4. Cached root /
 				const fallback = await cache.match('/');
 				if (fallback) return fallback;
 
