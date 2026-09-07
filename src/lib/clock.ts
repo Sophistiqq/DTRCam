@@ -80,7 +80,7 @@ export async function syncServerTime(): Promise<ClockSyncData | null> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-		const response = await fetch('/api/time', {
+		const response = await fetch(`${base}/api/time`, {
 			cache: 'no-store',
 			headers: { 'Cache-Control': 'no-cache' },
 			signal: controller.signal
@@ -279,3 +279,4 @@ export function getClockSyncState(): ClockSyncState {
 	};
 }
 
+import { base } from '$app/paths';
