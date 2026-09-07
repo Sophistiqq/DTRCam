@@ -139,7 +139,7 @@ export async function refreshRecordsFromServer(force = false, employeeId?: strin
 	if (!force && getCacheAge() < CACHE_TTL_MS) return;
 
 	try {
-		const response = await fetch('/api/punch/ingest?days=7', {
+		const response = await fetch(`${base}/api/punch/ingest?days=7`, {
 			cache: 'no-store'
 		});
 
@@ -190,3 +190,4 @@ export async function refreshRecordsFromServer(force = false, employeeId?: strin
 }
 
 
+import { base } from '$app/paths';

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import type { PageData } from './$types';
 	import { Users, ShieldAlert, Key, ClipboardList, Clock } from 'lucide-svelte';
 
@@ -11,22 +12,22 @@
 		<p class="subtitle">System operations and field employee administration</p>
 
 		<div class="stats-row">
-			<a href="/admin/employees" class="stat-box">
+			<a href={`${base}/admin/employees`} class="stat-box">
 				<span class="stat-num">{data.stats.totalEmployees}</span>
 				<span class="stat-label">Employees</span>
 			</a>
 
-			<a href="/admin/quarantine" class="stat-box" class:alert={data.stats.quarantinePending > 0}>
+			<a href={`${base}/admin/quarantine`} class="stat-box" class:alert={data.stats.quarantinePending > 0}>
 				<span class="stat-num">{data.stats.quarantinePending}</span>
 				<span class="stat-label">Quarantine Pending</span>
 			</a>
 
-			<a href="/admin/api-keys" class="stat-box">
+			<a href={`${base}/admin/api-keys`} class="stat-box">
 				<span class="stat-num">{data.stats.activeApiKeys}</span>
 				<span class="stat-label">Active API Keys</span>
 			</a>
 
-			<a href="/admin/punches" class="stat-box">
+			<a href={`${base}/admin/punches`} class="stat-box">
 				<span class="stat-num">{data.stats.totalPunches}</span>
 				<span class="stat-label">Total Punches</span>
 			</a>
@@ -34,7 +35,7 @@
 	</div>
 
 	<div class="sections-grid">
-		<a href="/admin/punches" class="section-card">
+		<a href={`${base}/admin/punches`} class="section-card">
 			<span class="section-icon"><Clock size={28} /></span>
 			<div>
 				<div class="section-name">Punch Records</div>
@@ -42,7 +43,7 @@
 			</div>
 		</a>
 
-		<a href="/admin/employees" class="section-card">
+		<a href={`${base}/admin/employees`} class="section-card">
 			<span class="section-icon"><Users size={28} /></span>
 			<div>
 				<div class="section-name">Employees</div>
@@ -50,7 +51,7 @@
 			</div>
 		</a>
 
-		<a href="/admin/quarantine" class="section-card">
+		<a href={`${base}/admin/quarantine`} class="section-card">
 			<span class="section-icon"><ShieldAlert size={28} /></span>
 			<div>
 				<div class="section-name">Quarantine Queue</div>
@@ -58,7 +59,7 @@
 			</div>
 		</a>
 
-		<a href="/admin/api-keys" class="section-card">
+		<a href={`${base}/admin/api-keys`} class="section-card">
 			<span class="section-icon"><Key size={28} /></span>
 			<div>
 				<div class="section-name">API Keys</div>
@@ -66,7 +67,7 @@
 			</div>
 		</a>
 
-		<a href="/admin/audit" class="section-card">
+		<a href={`${base}/admin/audit`} class="section-card">
 			<span class="section-icon"><ClipboardList size={28} /></span>
 			<div>
 				<div class="section-name">Audit Log</div>
@@ -189,4 +190,3 @@
 		line-height: 1.4;
 	}
 </style>
-

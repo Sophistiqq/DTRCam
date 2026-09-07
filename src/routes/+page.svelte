@@ -6,7 +6,7 @@
 	$effect(() => {
 		const profile = $page.data.profile;
 		if (profile) {
-			goto(profile.role === 'admin' ? '/admin' : '/punch', { replaceState: true });
+			goto(`${base}${profile.role === 'admin' ? '/admin' : '/punch'}`, { replaceState: true });
 		} else {
 			goto(`${base}/login`, { replaceState: true });
 		}
