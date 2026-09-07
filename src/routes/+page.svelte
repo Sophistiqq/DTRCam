@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 
 	$effect(() => {
@@ -7,7 +8,7 @@
 		if (profile) {
 			goto(profile.role === 'admin' ? '/admin' : '/punch', { replaceState: true });
 		} else {
-			goto('/login', { replaceState: true });
+			goto(`${base}/login`, { replaceState: true });
 		}
 	});
 </script>
@@ -40,4 +41,3 @@
 		}
 	}
 </style>
-

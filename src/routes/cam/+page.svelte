@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import CameraCapture from '$lib/components/CameraCapture.svelte';
 	import { initTrustedClock, getTrustedTime, formatWorkDate } from '$lib/clock';
 	import { enqueuePunch, cachePunchPhoto } from '$lib/queue/db';
@@ -132,7 +133,7 @@
 				<User size={14} /> #{employeeNo}
 			</button>
 			{/if}
-			<a href="/login" class="btn-login">
+			<a href={`${base}/login`} class="btn-login">
 				<LogIn size={14} /> Login
 			</a>
 		</div>

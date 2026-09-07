@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabase';
 import { goto } from '$app/navigation';
 import { clearLocalHistory } from './history';
+import { base } from '$app/paths';
 
 /** Convert employee number to internal email alias */
 export function empNoToEmail(empNo: string): string {
@@ -36,14 +37,14 @@ export async function logout(): Promise<void> {
 		console.warn('[Auth] SignOut error (offline or network failure):', err);
 	}
 	try {
-		await fetch('/logout', { method: 'POST' });
+		await fetch(`${base}/logout`, { method: 'POST' });
 	} catch (err) {
 		console.warn('[Auth] Server signOut error:', err);
 	}
 	if (typeof window !== 'undefined') {
-		window.location.href = '/login';
+		window.location.href = `${base}/login`;
 	} else {
-		goto('/login');
+		goto(`${base}/login`);
 	}
 }
 

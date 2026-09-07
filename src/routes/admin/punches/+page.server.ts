@@ -2,12 +2,13 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { supabaseAdmin } from '$lib/server/supabase';
 import type { PunchStatus } from '$lib/types/database';
+import { base } from '$app/paths';
 
 const PAGE_SIZE = 50;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.profile || locals.profile.role !== 'admin') {
-		redirect(302, '/login');
+		redirect(302, `${base}/login`);
 	}
 
 	const statusFilter = url.searchParams.get('status') || '';

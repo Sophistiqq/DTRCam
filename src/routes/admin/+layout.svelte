@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { logout } from '$lib/auth';
+	import { base } from '$app/paths';
 	import AppLogo from '$lib/components/AppLogo.svelte';
 
 	let { children } = $props();
@@ -7,7 +8,7 @@
 
 <div class="shell">
 	<header class="topbar">
-		<a href="/admin" class="app-brand">
+		<a href={`${base}/admin`} class="app-brand">
 			<AppLogo size={28} />
 			<span class="app-name">DTRCam <span class="admin-badge">Admin</span></span>
 		</a>
@@ -15,12 +16,12 @@
 	</header>
 
 	<nav class="nav">
-		<a href="/admin" class="nav-link">Dashboard</a>
-		<a href="/admin/punches" class="nav-link">Punch Records</a>
-		<a href="/admin/employees" class="nav-link">Employees</a>
-		<a href="/admin/api-keys" class="nav-link">API Keys</a>
-		<a href="/admin/quarantine" class="nav-link">Quarantine</a>
-		<a href="/admin/audit" class="nav-link">Audit Log</a>
+		<a href={`${base}/admin`} class="nav-link">Dashboard</a>
+		<a href={`${base}/admin/punches`} class="nav-link">Punch Records</a>
+		<a href={`${base}/admin/employees`} class="nav-link">Employees</a>
+		<a href={`${base}/admin/api-keys`} class="nav-link">API Keys</a>
+		<a href={`${base}/admin/quarantine`} class="nav-link">Quarantine</a>
+		<a href={`${base}/admin/audit`} class="nav-link">Audit Log</a>
 	</nav>
 
 	<main class="content">
@@ -138,4 +139,3 @@
 		margin: 0 auto;
 	}
 </style>
-

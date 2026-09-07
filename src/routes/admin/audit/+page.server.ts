@@ -1,10 +1,11 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { supabaseAdmin } from '$lib/server/supabase';
+import { base } from '$app/paths';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.profile || locals.profile.role !== 'admin') {
-		redirect(302, '/login');
+		redirect(302, `${base}/login`);
 	}
 
 	const actionFilter = url.searchParams.get('action');

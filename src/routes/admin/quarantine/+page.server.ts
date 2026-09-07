@@ -3,10 +3,11 @@ import crypto from 'node:crypto';
 import type { PageServerLoad, Actions } from './$types';
 import type { Json } from '$lib/types/database';
 import { supabaseAdmin, writeAuditLog, writePunchAudit } from '$lib/server/supabase';
+import { base } from '$app/paths';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.profile || locals.profile.role !== 'admin') {
-		redirect(302, '/login');
+		redirect(302, `${base}/login`);
 	}
 
 	const { data: rows, error: dbError } = await supabaseAdmin
