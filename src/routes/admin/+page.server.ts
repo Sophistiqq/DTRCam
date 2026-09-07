@@ -1,10 +1,11 @@
 import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 import type { PageServerLoad } from './$types';
 import { supabaseAdmin } from '$lib/server/supabase';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.profile || locals.profile.role !== 'admin') {
-		redirect(302, '/login');
+		redirect(302, `${base}/login`);
 	}
 
 	const [employeesRes, keysRes, quarantineRes, punchesRes] = await Promise.all([

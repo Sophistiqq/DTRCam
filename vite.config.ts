@@ -5,6 +5,7 @@ import { sentrySvelteKit } from '@sentry/sveltekit';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 
 const sentryEnabled = process.env.SENTRY_ORG && process.env.SENTRY_PROJECT && process.env.SENTRY_AUTH_TOKEN;
+const basePath = process.env.PUBLIC_BASE_PATH || '';
 
 export default defineConfig({
 	server: {
@@ -35,6 +36,9 @@ export default defineConfig({
 				runes: ({ filename }) => filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			kit: {
+				paths: {
+					base: basePath
+				},
 				csrf: {
 					checkOrigin: false
 				}

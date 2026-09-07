@@ -2,10 +2,11 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { supabaseAdmin, writeAuditLog } from '$lib/server/supabase';
 import { createApiKey } from '$lib/server/api-auth';
+import { base } from '$app/paths';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.profile || locals.profile.role !== 'admin') {
-		redirect(302, '/login');
+		redirect(302, `${base}/login`);
 	}
 
 	const { data: keys, error: dbError } = await supabaseAdmin

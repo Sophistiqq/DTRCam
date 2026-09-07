@@ -1,4 +1,5 @@
 import { json, redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 import { createServerClient } from '@supabase/ssr';
 import type { CookieOptions } from '@supabase/ssr';
 import { env } from '$env/dynamic/public';
@@ -33,7 +34,7 @@ async function performLogout(event: Parameters<RequestHandler>[0]) {
 
 export const GET: RequestHandler = async (event) => {
 	await performLogout(event);
-	redirect(302, '/login');
+	redirect(302, `${base}/login`);
 };
 
 export const POST: RequestHandler = async (event) => {

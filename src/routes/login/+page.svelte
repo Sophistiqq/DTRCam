@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import AppLogo from '$lib/components/AppLogo.svelte';
 	import { Camera } from 'lucide-svelte';
@@ -79,7 +80,7 @@
 			</button>
 		</form>
 
-		<a href="/cam" class="camera-link">
+		<a href={`${base}/cam`} class="camera-link">
 			<Camera size={16} /> Use Camera Without Login
 		</a>
 	</main>
@@ -228,4 +229,3 @@
 		color: var(--accent, #ede947);
 	}
 </style>
-

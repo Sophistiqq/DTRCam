@@ -6,11 +6,12 @@ import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/publi
 import { supabaseAdmin } from '$lib/server/supabase';
 import type { Actions, PageServerLoad } from './$types';
 import type { Database } from '$lib/types/database';
+import { base } from '$app/paths';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { profile } = locals;
 	if (profile && profile.is_active) {
-		redirect(302, profile.role === 'admin' ? '/admin' : '/punch');
+		redirect(302, `${base}${profile.role === 'admin' ? '/admin' : '/punch'}`);
 	}
 	return {};
 };
@@ -92,6 +93,6 @@ export const actions: Actions = {
 			return fail(403, { error: 'Your account is inactive. Contact your administrator.' });
 		}
 
-		redirect(302, profile.role === 'admin' ? '/admin' : '/punch');
+		redirect(302, `${base}${profile.role === 'admin' ? '/admin' : '/punch'}`);
 	}
 };
