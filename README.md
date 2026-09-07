@@ -1,42 +1,25 @@
-# sv
+# DTRCam
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+## Docker deployment
 
-## Creating a project
+The server does not need a checkout of this repository. Docker Compose can use the
+GitHub repository as its build context and clone it while building the image.
 
-If you're seeing this, you've probably already done this step. Congrats!
+1. Create a deployment directory and copy `docker-compose.example.yml` to
+   `docker-compose.yml`.
+2. Create `.env` in the same directory using `.env.example` as a template. Set
+   `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`, and
+   `SUPABASE_SERVICE_ROLE_KEY` to the values from the Supabase project.
+3. Build and start the service:
 
-```sh
-# create a new project
-npx sv create my-app
-```
+   ```sh
+   docker compose up -d --build
+   ```
 
-To recreate this project with the same configuration:
+The Supabase URL and anon key are passed as Docker build arguments because
+SvelteKit embeds `PUBLIC_*` static environment variables in the browser bundle.
+The service-role key remains a runtime-only variable supplied through `.env` and
+is never passed as a build argument.
 
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --add sveltekit-adapter="adapter:node" --no-download-check --no-install .
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+To deploy a newer commit, run `docker compose build --no-cache` followed by
+`docker compose up -d`.
