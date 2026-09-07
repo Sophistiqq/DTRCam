@@ -648,11 +648,6 @@
 		border-radius: 4px;
 	}
 
-	.alert-icon {
-		flex-shrink: 0;
-		margin-top: 0.1rem;
-	}
-
 	.alert-content {
 		display: flex;
 		flex-direction: column;

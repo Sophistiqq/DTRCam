@@ -8,7 +8,7 @@ Feel free to delete this file and the entire sentry route.
   import { onMount } from 'svelte';
   
   let hasSentError = $state(false);
-  let isConnected = true;
+  let isConnected = $state(true);
 
   onMount(async () => {
     const result = await Sentry.diagnoseSdkConnectivity();
@@ -200,10 +200,5 @@ Feel free to delete this file and the entire sentry route.
     border: 1px solid #A80033;
     text-align: center;
     margin: 0;
-  }
-  
-  .connectivity-error a {
-    color: #FFFFFF;
-    text-decoration: underline;
   }
 </style>

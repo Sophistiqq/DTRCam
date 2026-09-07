@@ -12,11 +12,12 @@ services:
       - .env
     environment:
       PORT: 3000
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
     ports:
       - "${DTRCAM_PORT:-3000}:3000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      test: ["CMD", "bun", "-e", "const base = process.env.PUBLIC_BASE_PATH || ''; fetch(`http://127.0.0.1:3000${base}/health`).then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3

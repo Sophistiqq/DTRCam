@@ -146,6 +146,7 @@
 				<h2 class="id-title">Enter Your Employee ID</h2>
 				<p class="id-desc">Your photos will be linked to this ID when synced.</p>
 				<form class="id-form" onsubmit={(e) => { e.preventDefault(); saveEmployeeId(); }}>
+					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						type="text"
 						inputmode="numeric"
