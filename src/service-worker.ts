@@ -6,12 +6,13 @@
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
 import { build, files, version } from '$service-worker';
+import { base } from '$app/paths';
 
 const CACHE_NAME = `dtrcam-cache-${version}`;
 const ASSETS_TO_CACHE = [...build, ...files];
 
 // Pages to eagerly cache during install for offline camera availability
-const OFFLINE_PAGES = ['/cam', '/login', '/punch', '/'];
+const OFFLINE_PAGES = [`${base}/cam`, `${base}/login`, `${base}/punch`, `${base || '/'}`];
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -43,7 +44,7 @@ sw.addEventListener('fetch', (event) => {
 	const url = new URL(event.request.url);
 
 	// Bypass non-GET requests and API calls (let sync engine handle API queueing)
-	if (event.request.method !== 'GET' || url.pathname.startsWith('/api/')) {
+	if (event.request.method !== 'GET' || url.pathname.startsWith(`${base}/api/`)) {
 		return;
 	}
 
@@ -70,15 +71,15 @@ sw.addEventListener('fetch', (event) => {
 				if (cachedPage) return cachedPage;
 
 				// 2. Standalone camera — works without auth, the core offline feature
-				const cachedCam = await cache.match('/cam');
+				const cachedCam = await cache.match(`${base}/cam`);
 				if (cachedCam) return cachedCam;
 
 				// 3. Cached /punch page (if previously visited while logged in)
-				const cachedPunch = await cache.match('/punch');
+				const cachedPunch = await cache.match(`${base}/punch`);
 				if (cachedPunch) return cachedPunch;
 
-				// 4. Cached root /
-				const fallback = await cache.match('/');
+				// 4. Cached root
+				const fallback = await cache.match(base || '/');
 				if (fallback) return fallback;
 
 				return new Response('Offline - DTRCam is running without network connection.', {

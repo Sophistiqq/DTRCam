@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 	import CameraCapture from '$lib/components/CameraCapture.svelte';
 	import {
 		initTrustedClock,
@@ -486,7 +487,7 @@
 						{#if record.thumb_url || record.photo_data_url}
 							<img src={record.thumb_url || record.photo_data_url} alt="thumb" class="thumb-img" />
 						{:else if record.photo_path || record.synced}
-							<img src="/api/punch/photo?id={record.id}" alt="thumb" class="thumb-img" loading="lazy" />
+							<img src="{base}/api/punch/photo?id={record.id}" alt="thumb" class="thumb-img" loading="lazy" />
 						{/if}
 					</div>
 				</div>

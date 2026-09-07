@@ -5,6 +5,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { LocationSource, PunchType } from '$lib/types/database';
+import { base } from '$app/paths';
 
 export interface QueuedPunchItem {
 	id: string; // UUID
@@ -175,7 +176,7 @@ export async function getOrFetchPunchPhoto(id: string): Promise<string | null> {
 		if (typeof window === 'undefined') return null;
 
 		// 2. Fetch from server endpoint
-		const response = await fetch(`/api/punch/photo?id=${encodeURIComponent(id)}`);
+		const response = await fetch(`${base}/api/punch/photo?id=${encodeURIComponent(id)}`);
 		if (!response.ok) return null;
 
 		const blob = await response.blob();

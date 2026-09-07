@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 
 	// ── Types ──────────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@
 			if (destroyed) return;
 
 			reconnecting = false;
-			es = new EventSource('/api/debug/stream');
+			es = new EventSource(`${base}/api/debug/stream`);
 
 			// Named events we care about explicitly:
 			const namedEvents = [
