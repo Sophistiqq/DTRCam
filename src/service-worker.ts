@@ -6,10 +6,10 @@
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
 import { build, files, version } from '$service-worker';
-import { base } from '$app/paths';
 
 const CACHE_NAME = `dtrcam-cache-${version}`;
 const ASSETS_TO_CACHE = [...build, ...files];
+const base = new URL('.', self.location.href).pathname.replace(/\/$/, '');
 
 // Pages to eagerly cache during install for offline camera availability
 const OFFLINE_PAGES = [`${base}/cam`, `${base}/login`, `${base}/punch`, `${base || '/'}`];
