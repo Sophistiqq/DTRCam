@@ -7,6 +7,7 @@
 
 	let selectedPunch = $state<any | null>(null);
 	let modalMode = $state<'accept' | 'discard' | null>(null);
+	let dialog = $state<HTMLDialogElement | null>(null);
 	let adminNote = $state('');
 	let isSubmitting = $state(false);
 
@@ -17,10 +18,17 @@
 	}
 
 	function closeModal() {
+		if (dialog?.open) dialog.close();
 		selectedPunch = null;
 		modalMode = null;
 		adminNote = '';
 	}
+
+	$effect(() => {
+		if (selectedPunch && modalMode && dialog && !dialog.open) {
+			dialog.showModal();
+		}
+	});
 </script>
 
 <div class="quarantine-page">
@@ -121,13 +129,13 @@
 
 <!-- Modal for Force Accept or Discard -->
 {#if selectedPunch && modalMode}
-	<div class="modal-backdrop">
+	<dialog bind:this={dialog} class="modal-dialog" aria-labelledby="quarantine-dialog-title" onclose={closeModal}>
 		<div class="modal-card">
 			<div class="modal-header">
-				<h3>
+				<h2 id="quarantine-dialog-title">
 					{modalMode === 'accept' ? 'Force Accept Record' : 'Discard Quarantined Record'}
-				</h3>
-				<button class="btn-close" onclick={closeModal}><X size={18} /></button>
+				</h2>
+				<button type="button" class="btn-close" aria-label="Close dialog" onclick={closeModal}><X size={18} /></button>
 			</div>
 
 			<p class="modal-desc">
@@ -169,7 +177,7 @@
 					<button type="button" class="btn-outline" onclick={closeModal}>Cancel</button>
 					<button
 						type="submit"
-						class={modalMode === 'accept' ? 'btn-primary' : 'btn-danger-solid'}
+						class={modalMode === 'accept' ? 'btn-confirm-accept' : 'btn-danger-solid'}
 						disabled={isSubmitting}
 					>
 						{isSubmitting ? 'Processing…' : modalMode === 'accept' ? 'Confirm Acceptance' : 'Confirm Discard'}
@@ -177,7 +185,7 @@
 				</div>
 			</form>
 		</div>
-	</div>
+	</dialog>
 {/if}
 
 <style>
@@ -250,7 +258,7 @@
 	.punch-photo-box {
 		position: relative;
 		width: 100%;
-		aspect-ratio: 1 / 1;
+		height: clamp(180px, 28vw, 280px);
 		background: #0d0d0d;
 		overflow: hidden;
 		display: flex;
@@ -419,6 +427,29 @@
 		border: none;
 	}
 
+	.btn-confirm-accept {
+		background: var(--accent, #ede947);
+		color: #160d33;
+		border: 1px solid var(--accent, #ede947);
+		border-radius: 6px;
+		font-weight: 800;
+		padding: 0.65rem 1.1rem;
+		cursor: pointer;
+		font-family: inherit;
+		transition: filter 160ms ease, transform 160ms ease;
+	}
+
+	.btn-confirm-accept:hover:not(:disabled) {
+		filter: brightness(1.08);
+		transform: translateY(-1px);
+	}
+
+	.btn-confirm-accept:disabled,
+	.btn-danger-solid:disabled {
+		opacity: 0.55;
+		cursor: wait;
+	}
+
 	.btn-outline-danger {
 		background: transparent;
 		border: 1px solid rgba(219, 70, 62, 0.4);
@@ -445,25 +476,37 @@
 		cursor: pointer;
 	}
 
-	/* Modal */
-	.modal-backdrop {
+	/* Native modal dialog */
+	.modal-dialog {
 		position: fixed;
 		inset: 0;
-		background: rgba(14, 7, 31, 0.85);;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		width: 100%;
+		height: 100%;
+		max-width: none;
+		max-height: none;
+		margin: 0;
 		padding: 1rem;
+		border: none;
+		background: transparent;
+		display: grid;
+		place-items: center;
 		z-index: 100;
 	}
 
+	.modal-dialog::backdrop {
+		background: rgba(3, 7, 18, 0.78);
+		backdrop-filter: blur(3px);
+	}
+
 	.modal-card {
+		position: relative;
 		background: var(--surface, #1a1a1a);
 		border: 1px solid var(--border, #333333);
-		border-radius: 4px;
+		border-radius: 12px;
 		padding: 1.5rem;
 		width: 100%;
 		max-width: 440px;
+		box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
@@ -475,7 +518,7 @@
 		justify-content: space-between;
 	}
 
-	.modal-header h3 {
+	.modal-header h2 {
 		font-size: 1.15rem;
 		font-weight: 700;
 		color: #ffffff;
@@ -536,5 +579,53 @@
 		gap: 0.75rem;
 		margin-top: 0.5rem;
 	}
-</style>
 
+	@media (min-width: 760px) {
+		.grid-list {
+			grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+		}
+
+		.punch-card {
+			display: grid;
+			grid-template-columns: minmax(180px, 220px) 1fr;
+		}
+
+		.punch-photo-box {
+			height: 100%;
+			min-height: 220px;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.header-row {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+
+		.count-pill {
+			align-self: flex-start;
+		}
+
+		.punch-top {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 0.35rem;
+		}
+
+		.modal-dialog {
+			padding: 0.75rem;
+		}
+
+		.modal-card {
+			padding: 1.15rem;
+		}
+
+		.modal-actions {
+			flex-direction: column-reverse;
+		}
+
+		.modal-actions button {
+			width: 100%;
+		}
+	}
+</style>

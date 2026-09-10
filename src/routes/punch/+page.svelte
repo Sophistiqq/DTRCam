@@ -1048,7 +1048,10 @@
 
 	.detail-photo {
 		width: 100%;
-		height: auto;
+		height: min(62dvh, 560px);
+		max-height: 560px;
+		object-fit: contain;
+		background: #0b0b0b;
 		display: block;
 	}
 
@@ -1104,6 +1107,20 @@
 		word-break: break-all;
 	}
 
+	@media (min-width: 760px) {
+		.detail-photo {
+			width: min(100%, 760px);
+			margin: 0 auto;
+			border-inline: 1px solid var(--border, #2a2a2a);
+		}
+	}
+
+	@media (max-width: 420px) {
+		.detail-photo {
+			height: min(52dvh, 420px);
+		}
+	}
+
 	.uppercase {
 		text-transform: uppercase;
 	}
@@ -1148,4 +1165,3 @@
 		vertical-align: middle;
 	}
 </style>
-

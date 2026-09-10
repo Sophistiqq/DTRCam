@@ -49,6 +49,8 @@
 		position: sticky;
 		top: 0;
 		z-index: 10;
+		backdrop-filter: blur(14px);
+		background: color-mix(in srgb, var(--surface, #1a1a1a) 88%, transparent);
 	}
 
 	.app-brand {
@@ -90,6 +92,7 @@
 		cursor: pointer;
 		text-decoration: none;
 		font-family: inherit;
+		transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 	}
 
 	.btn-logout:hover {
@@ -118,6 +121,7 @@
 		text-decoration: none;
 		border-bottom: 2px solid transparent;
 		white-space: nowrap;
+		transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
 	}
 
 	.nav-link:hover {
@@ -134,8 +138,31 @@
 	.content {
 		flex: 1;
 		padding: 1.25rem 1rem;
-		max-width: 960px;
+		max-width: 1180px;
 		width: 100%;
 		margin: 0 auto;
+	}
+
+	@media (max-width: 640px) {
+		.topbar {
+			padding: 0.7rem 0.85rem;
+		}
+
+		.app-name {
+			font-size: 1rem;
+		}
+
+		.admin-badge {
+			font-size: 0.62rem;
+		}
+
+		.nav-link {
+			padding: 0.7rem 0.85rem;
+			font-size: 0.8rem;
+		}
+
+		.content {
+			padding: 1rem 0.85rem 1.5rem;
+		}
 	}
 </style>

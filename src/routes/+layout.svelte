@@ -39,5 +39,32 @@
 		background: var(--bg);
 		color: var(--text);
 		font-family: system-ui, sans-serif;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	:global(button),
+	:global(a),
+	:global(input),
+	:global(select) {
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	:global(button:focus-visible),
+	:global(a:focus-visible),
+	:global(input:focus-visible),
+	:global(select:focus-visible) {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:global(*),
+		:global(*::before),
+		:global(*::after) {
+			scroll-behavior: auto !important;
+			transition-duration: 0.01ms !important;
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+		}
 	}
 </style>
