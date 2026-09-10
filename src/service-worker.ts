@@ -11,8 +11,8 @@ const CACHE_NAME = `dtrcam-cache-${version}`;
 const ASSETS_TO_CACHE = [...build, ...files];
 const base = new URL('.', self.location.href).pathname.replace(/\/$/, '');
 
-// Pages to eagerly cache during install for offline camera availability
-const OFFLINE_PAGES = [`${base}/cam`, `${base}/login`, `${base}/punch`, `${base || '/'}`];
+// Pages to eagerly cache for authenticated offline punching.
+const OFFLINE_PAGES = [`${base}/login`, `${base}/punch`, `${base || '/'}`];
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -70,15 +70,11 @@ sw.addEventListener('fetch', (event) => {
 				const cachedPage = await cache.match(event.request);
 				if (cachedPage) return cachedPage;
 
-				// 2. Standalone camera — works without auth, the core offline feature
-				const cachedCam = await cache.match(`${base}/cam`);
-				if (cachedCam) return cachedCam;
-
-				// 3. Cached /punch page (if previously visited while logged in)
+				// 2. Cached /punch page (if previously visited while logged in)
 				const cachedPunch = await cache.match(`${base}/punch`);
 				if (cachedPunch) return cachedPunch;
 
-				// 4. Cached root
+				// 3. Cached root
 				const fallback = await cache.match(base || '/');
 				if (fallback) return fallback;
 

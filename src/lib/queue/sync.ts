@@ -13,8 +13,6 @@ import {
 import { getLocalPunches, saveLocalPunch } from '$lib/history';
 import { getClockSyncState } from '$lib/clock';
 
-const MAX_RETRY_ATTEMPTS = 10;
-
 export interface SyncStatus {
 	isSyncing: boolean;
 	pendingCount: number;
@@ -93,7 +91,7 @@ export function initSyncEngine() {
 
 /**
  * Resolve employee_id for upload: if the queued item has an employee_no
- * (from offline /cam), resolve it to the authenticated user's UUID.
+ * (from the retired anonymous camera flow), resolve it to the authenticated user's UUID.
  */
 function resolveEmployeeId(queuedId: string): string {
 	// UUIDs contain hyphens at standard positions
@@ -115,13 +113,6 @@ function resolveEmployeeId(queuedId: string): string {
  * Upload a single queued punch item to the server
  */
 async function uploadPunchItem(item: QueuedPunchItem): Promise<boolean> {
-	// Skip items that have exceeded max retries — remove from queue
-	if (item.attempts >= MAX_RETRY_ATTEMPTS) {
-		console.warn(`[Sync] Punch ${item.id} exceeded max retries (${MAX_RETRY_ATTEMPTS}), removing from queue`);
-		await removeQueuedPunch(item.id);
-		return true; // Continue processing next items
-	}
-
 	try {
 		const formData = new FormData();
 		formData.append('photo', item.photo_blob, `punch_${item.id}.jpg`);

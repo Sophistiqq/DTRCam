@@ -285,42 +285,6 @@
 
 		// 5. Attempt immediate sync
 		triggerSync();
-
-		// 6. Save photo to device gallery (non-blocking — don't let failure block the punch)
-		saveToGallery(payload.blob, record.punch_type, record.captured_at).catch((err) => {
-			console.warn('[Punch] Gallery save failed:', err);
-		});
-	}
-
-	/**
-	 * Attempt to save the captured selfie to the device gallery.
-	 * Uses Web Share API (Android/iOS 15+) with fallback to programmatic download.
-	 */
-	async function saveToGallery(blob: Blob, punchType: string, capturedAt: string) {
-		const label = punchType === 'in' ? 'TIME-IN' : 'TIME-OUT';
-		const dateStr = new Date(capturedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19);
-		const filename = `DTRCam_${label}_${dateStr}.jpg`;
-		const file = new File([blob], filename, { type: 'image/jpeg' });
-
-		// Try Web Share API (saves to gallery on Android Chrome & iOS 15+)
-		if (navigator.canShare && navigator.canShare({ files: [file] })) {
-			try {
-				await navigator.share({ files: [file], title: `DTRCam ${label}` });
-				return;
-			} catch {
-				// User cancelled share or browser denied — fall through to download
-			}
-		}
-
-		// Fallback: trigger a download (goes to Downloads folder on most platforms)
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = filename;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		setTimeout(() => URL.revokeObjectURL(url), 5000);
 	}
 </script>
 

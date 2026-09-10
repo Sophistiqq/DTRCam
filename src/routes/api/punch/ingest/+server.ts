@@ -210,7 +210,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			});
 
 		if (uploadError) {
-			console.warn('[Storage] Supabase storage upload warning:', uploadError.message);
+			console.error('[Storage] Supabase storage upload failed:', uploadError.message);
+			return json({ error: 'Photo upload failed. Please retry.' }, { status: 503 });
 		}
 
 		// 4. Insert Record into Punches Table
