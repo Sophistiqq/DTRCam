@@ -62,14 +62,16 @@
 
 	let unsubscribeSync: (() => void) | null = null;
 	const todayWorkDate = $derived(formatWorkDate(getTrustedTime().date));
+	type RecordGroup = { workDate: string; records: LocalPunchRecord[] };
 
 	// ── Session / Button-lock logic ──────────────────────────────────────────
 	// Duplicates are device-only backups rejected by the server (409) —
 	// hidden from the records list, but still counted to lock the buttons
 	const isDuplicate = (r: LocalPunchRecord) => !!r.duplicate;
 
-	// Visible records exclude device-only duplicates
-	const visibleTodayRecords = $derived(todayRecords.filter((r) => !isDuplicate(r)));
+	// Visible records exclude device-only duplicates.
+	const visibleRecords = $derived(todayRecords.filter((r) => !isDuplicate(r)));
+	const recordGroups = $derived(groupRecords(visibleRecords));
 
 	// Open session = a TIME IN (from any day) that has no matching TIME OUT yet.
 	// Enforced sequencing: TIME IN is locked while a shift is open, TIME OUT is
@@ -77,7 +79,7 @@
 	const openTimeIn = $derived(findOpenTimeIn(allRecords));
 	const openIsToday = $derived(openTimeIn?.work_date === todayWorkDate);
 	const todayHasOut = $derived(
-		todayRecords.some(
+		visibleRecords.some(
 			(r) => r.punch_type === 'out' && !isDuplicate(r) && r.status !== 'quarantined'
 		)
 	);
@@ -85,13 +87,16 @@
 	const timeInDisabled  = $derived(openTimeIn !== null);
 	const timeOutDisabled = $derived(openTimeIn === null);
 
-	// Records are displayed for the current work date plus the work date of the
-	// most recent punch — so overnight TIME OUTs (logged under yesterday's date)
-	// stay visible until the next activity.
-	const displayContextDate = $derived(allRecords[0]?.work_date ?? todayWorkDate);
-
 	// Only non-duplicate quarantined records are "real" quarantines to warn about
-	const quarantinedRecords = $derived(todayRecords.filter(r => r.status === 'quarantined' && !isDuplicate(r)));
+	const quarantinedRecords = $derived(visibleRecords.filter((r) => r.status === 'quarantined'));
+
+	function groupRecords(records: LocalPunchRecord[]): RecordGroup[] {
+		const groups = new Map<string, LocalPunchRecord[]>();
+		for (const record of records) {
+			groups.set(record.work_date, [...(groups.get(record.work_date) ?? []), record]);
+		}
+		return [...groups].map(([workDate, groupedRecords]) => ({ workDate, records: groupedRecords }));
+	}
 
 	// ── Browser back button support & IndexedDB Photo Loading ────────────────
 	async function openRecord(record: LocalPunchRecord) {
@@ -174,16 +179,9 @@
 		all.sort((a, b) => new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime());
 		allRecords = all;
 
-		const currentWorkDate = formatWorkDate(getTrustedTime().date);
-		// Show today's punches, pending unsynced punches, and the most recent
-		// session's work date (covers overnight TIME OUTs logged under yesterday)
-		const filtered = all.filter(
-			(p) => p.work_date === currentWorkDate || p.work_date === displayContextDate || !p.synced
-		);
-
 		// Enrich any records that have photos in IndexedDB cache
 		const enriched = await Promise.all(
-			filtered.map(async (rec) => {
+			all.map(async (rec) => {
 				if (rec.thumb_url) return rec;
 				const cached = await getCachedPunchPhoto(rec.id);
 				if (cached) {
@@ -378,12 +376,12 @@
 		</button>
 	</section>
 
-	<!-- Today's Records -->
+	<!-- Punch Records -->
 	<section class="history-section">
 		<div class="history-header">
 			<div class="history-header-left">
-				<span class="history-title">Today's Records</span>
-				<span class="work-date-badge">{todayWorkDate}</span>
+				<span class="history-title">Punch Records</span>
+				<span class="work-date-badge">{visibleRecords.length}</span>
 			</div>
 			<button
 				class="btn-refresh"
@@ -397,12 +395,18 @@
 			</button>
 		</div>
 
-		{#if visibleTodayRecords.length === 0}
+		{#if visibleRecords.length === 0}
 			<p class="empty-state">No records yet — tap TIME IN when you arrive.</p>
 		{:else}
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			{#each visibleTodayRecords as record}
+			{#each recordGroups as group}
+				<div class="record-group">
+					<div class="record-group-header">
+						<span>{group.workDate === todayWorkDate ? 'Today' : group.workDate}</span>
+						<span>{group.records.length} record{group.records.length === 1 ? '' : 's'}</span>
+					</div>
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					{#each group.records as record}
 				<div class="punch-item" onclick={() => openRecord(record)}>
 					<span
 						class="type-pill"
@@ -454,6 +458,8 @@
 							<img src="{base}/api/punch/photo?id={record.id}" alt="thumb" class="thumb-img" loading="lazy" />
 						{/if}
 					</div>
+				</div>
+					{/each}
 				</div>
 			{/each}
 		{/if}
@@ -841,17 +847,32 @@
 		padding: 1rem 0;
 	}
 
+	.record-group {
+		border-bottom: 1px solid var(--border, #2a2a2a);
+	}
+
+	.record-group:last-child {
+		border-bottom: none;
+	}
+
+	.record-group-header {
+		display: flex;
+		justify-content: space-between;
+		padding: 0.8rem 0 0.35rem;
+		color: var(--muted, #888);
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
 	.punch-item {
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
 		padding: 0.65rem 0;
-		border-bottom: 1px solid var(--border, #2a2a2a);
+		border-top: 1px solid var(--border, #2a2a2a);
 		cursor: pointer;
-	}
-
-	.punch-item:last-child {
-		border-bottom: none;
 	}
 
 	.type-pill {
